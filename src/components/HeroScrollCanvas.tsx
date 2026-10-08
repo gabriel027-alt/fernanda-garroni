@@ -1,203 +1,154 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
-
-const FRAME_COUNT = 45;
-const framePaths = Array.from(
-  { length: FRAME_COUNT },
-  (_, i) => `/midias/hero-seq/f-${String(i + 1).padStart(3, "0")}.jpg`
-);
+import React, { useRef, useEffect, useState } from "react";
 
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
-  const rafIdRef = useRef<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Estados do Loader e da Apresentação
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isMounted, setIsMounted] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // Função matemática para renderização COVER com opacidade alpha (Crossfade suave)
-  const drawCover = useCallback(
-    (
-      ctx: CanvasRenderingContext2D,
-      img: HTMLImageElement | undefined,
-      w: number,
-      h: number,
-      alpha = 1
-    ) => {
-      if (!img || !img.complete || img.naturalWidth === 0) return;
-      ctx.save();
-      ctx.globalAlpha = alpha;
+  // 1. ELIMINAR O FLASH DO LOADER E PROGRESSO CONTÍNUO
+  useEffect(() => {
+    const video = videoRef.current;
+    let currentProgress = 0;
+    let isFinished = false;
 
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      const screenRatio = w / h;
+    // Leitura contínua de 0% a 100% sem reiniciar
+    const interval = setInterval(() => {
+      if (isFinished) return;
+      currentProgress += Math.floor(Math.random() * 8) + 6;
+      if (currentProgress >= 90) {
+        currentProgress = 90;
+        clearInterval(interval);
+      }
+      setLoadingProgress(currentProgress);
+    }, 50);
 
-      let renderW = w;
-      let renderH = h;
-      let x = 0;
-      let y = 0;
+    const finishLoading = () => {
+      if (isFinished) return;
+      isFinished = true;
+      clearInterval(interval);
+      setLoadingProgress(100);
 
-      if (screenRatio > imgRatio) {
-        renderH = w / imgRatio;
-        y = (h - renderH) / 2;
+      // Fade-out suave (transition-opacity duration-500 opacity-0 pointer-events-none) e desmontagem definitiva
+      setTimeout(() => {
+        setLoaded(true);
+        setTimeout(() => {
+          setIsFullyLoaded(true);
+        }, 500);
+      }, 200);
+    };
+
+    if (video) {
+      video.pause();
+      video.setAttribute("webkit-playsinline", "true");
+      video.setAttribute("playsinline", "true");
+
+      if (video.readyState >= 3) {
+        finishLoading();
       } else {
-        renderW = h * imgRatio;
-        x = (w - renderW) / 2;
+        video.addEventListener("canplaythrough", finishLoading, { once: true });
+        video.addEventListener("canplay", finishLoading, { once: true });
+        video.addEventListener("loadeddata", finishLoading, { once: true });
       }
-
-      ctx.drawImage(img, x, y, renderW, renderH);
-      ctx.restore();
-    },
-    []
-  );
-
-  // Renderização 60 FPS com interpolação fracionária Crossfade entre fotogramas
-  const render = useCallback(() => {
-    const container = containerRef.current || document.getElementById("hero-scroll-container");
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return;
-
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
-
-    const rect = container.getBoundingClientRect();
-    const maxScroll = container.offsetHeight - window.innerHeight;
-    const progress = maxScroll > 0 ? Math.min(Math.max(-rect.top / maxScroll, 0), 1) : 0;
-
-    // Fundo base escuro #141210
-    ctx.fillStyle = "#141210";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Cálculo fracionário para crossfade suave entre frames
-    const rawIndex = progress * (FRAME_COUNT - 1);
-    const currentIndex = Math.floor(rawIndex);
-    const nextIndex = Math.min(currentIndex + 1, FRAME_COUNT - 1);
-    const blend = rawIndex - currentIndex;
-
-    const images = imagesRef.current;
-    if (images[currentIndex]) {
-      drawCover(ctx, images[currentIndex], canvas.width, canvas.height, 1);
-    }
-    if (blend > 0 && images[nextIndex]) {
-      drawCover(ctx, images[nextIndex], canvas.width, canvas.height, blend);
     }
 
-    // Fade-out rigoroso do texto central
-    if (progress > 0.65) {
-      setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 4));
-    } else {
-      setTextOpacity(1);
-    }
-  }, [drawCover]);
-
-  // Redimensionamento estrito com Retina / High-DPI
-  const resizeCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(window.innerWidth * dpr);
-    canvas.height = Math.round(window.innerHeight * dpr);
-
-    render();
-  }, [render]);
-
-  // Pré-carregamento dos 45 fotogramas na memória RAM
-  useEffect(() => {
-    let loadedCount = 0;
-    const images: HTMLImageElement[] = new Array(FRAME_COUNT);
-
-    framePaths.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-
-      img.onload = () => {
-        loadedCount++;
-        const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
-        setLoadingProgress(pct);
-
-        if (idx === 0) {
-          resizeCanvas();
-        }
-
-        if (loadedCount === FRAME_COUNT) {
-          resizeCanvas();
-          setTimeout(() => {
-            setIsLoaded(true);
-            setTimeout(() => {
-              setIsMounted(false);
-            }, 500);
-          }, 200);
-        }
-      };
-
-      img.onerror = () => {
-        loadedCount++;
-        const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
-        setLoadingProgress(pct);
-
-        if (loadedCount === FRAME_COUNT) {
-          resizeCanvas();
-          setTimeout(() => {
-            setIsLoaded(true);
-            setTimeout(() => {
-              setIsMounted(false);
-            }, 500);
-          }, 200);
-        }
-      };
-
-      images[idx] = img;
-    });
-
-    imagesRef.current = images;
-
-    window.addEventListener("resize", resizeCanvas, { passive: true });
-    resizeCanvas();
+    // Fallback de segurança para redes com restrições severas
+    const fallbackTimer = setTimeout(() => {
+      finishLoading();
+    }, 2500);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
-    };
-  }, [resizeCanvas]);
-
-  // Scroll listener acoplado ao requestAnimationFrame
-  useEffect(() => {
-    const handleScroll = () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
+      clearInterval(interval);
+      clearTimeout(fallbackTimer);
+      if (video) {
+        video.removeEventListener("canplaythrough", finishLoading);
+        video.removeEventListener("canplay", finishLoading);
+        video.removeEventListener("loadeddata", finishLoading);
       }
-      rafIdRef.current = requestAnimationFrame(() => {
-        render();
-      });
+    };
+  }, []);
+
+  // 2. RESOLVER O ENGASGO DO VÍDEO (INTERPOLAÇÃO LERP SUAVE A 60FPS)
+  useEffect(() => {
+    let targetTime = 0;
+    let currentTime = 0;
+    let rafId: number;
+
+    const updateTarget = () => {
+      const container = document.getElementById("hero-scroll-container");
+      const video = videoRef.current;
+      if (!container || !video || !video.duration) return;
+
+      const rect = container.getBoundingClientRect();
+      const maxScroll = container.offsetHeight - window.innerHeight;
+      if (maxScroll <= 0) return;
+
+      const progress = Math.min(Math.max(-rect.top / maxScroll, 0), 1);
+      targetTime = progress * video.duration;
+
+      // Fade out seguro do texto
+      if (progress > 0.65) {
+        setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 4));
+      } else {
+        setTextOpacity(1);
+      }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    const renderLoop = () => {
+      const video = videoRef.current;
+      if (video && video.duration) {
+        // Interpolação LERP suave (fator 0.15)
+        currentTime += (targetTime - currentTime) * 0.15;
+        if (Math.abs(video.currentTime - currentTime) > 0.015) {
+          video.currentTime = currentTime;
+        }
+      }
+      rafId = requestAnimationFrame(renderLoop);
+    };
+
+    window.addEventListener("scroll", updateTarget, { passive: true });
+    window.addEventListener("resize", updateTarget, { passive: true });
+    rafId = requestAnimationFrame(renderLoop);
+
+    const onLoadedMetadata = () => {
+      updateTarget();
+    };
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
+      if (video.duration) {
+        updateTarget();
+      }
+    }
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
+      window.removeEventListener("scroll", updateTarget);
+      window.removeEventListener("resize", updateTarget);
+      if (video) {
+        video.removeEventListener("loadedmetadata", onLoadedMetadata);
       }
+      cancelAnimationFrame(rafId);
     };
-  }, [render]);
+  }, []);
 
   const isHidden = textOpacity <= 0;
 
   return (
     <>
-      {/* 1. LOADER INICIAL COM A LOGO OFICIAL (Z-50) - DESMONTAGEM TOTAL */}
-      {isMounted && (
+      {/* 1. LOADER INICIAL COM A LOGO OFICIAL (Z-50) - DESMONTAGEM DEFINITIVA */}
+      {!isFullyLoaded && (
         <div
           className={`fixed inset-0 z-50 bg-[#141210] w-screen h-screen flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-500 ${
-            isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
+            loaded ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
-          style={{ display: !isMounted ? "none" : "flex" }}
-          aria-hidden={isLoaded}
+          style={{ display: isFullyLoaded ? "none" : "flex" }}
+          aria-hidden={loaded}
         >
           <div className="flex flex-col items-center max-w-xs w-full">
             {/* Logo Oficial Centralizada */}
@@ -225,24 +176,29 @@ export function HeroScrollCanvas() {
         </div>
       )}
 
-      {/* 2. HERO SCROLL COM CANVAS 2D DE FOTOGRAMAS (INTERPOLAÇÃO CROSSFADE) */}
+      {/* 2. HERO SCROLL COM VÍDEO OFICIAL (450vh) */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
-        className="relative h-[350vh] w-full bg-[#141210]"
+        className="relative h-[450vh] w-full bg-[#141210]"
         aria-label="Apresentação Interativa • Fernanda Garroni"
       >
         <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex items-center justify-center select-none">
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02]"
+          <video
+            ref={videoRef}
+            src="/midias/intro-fernanda.mp4"
+            muted
+            playsInline
+            {...({ "webkit-playsinline": "true" } as any)}
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none filter brightness-[0.92] contrast-[1.03]"
           />
 
           {/* Máscaras de Contraste e Profundidade */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50 pointer-events-none z-10" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.45)_0%,transparent_70%)] pointer-events-none z-10" />
 
-          {/* 3. OVERLAY TEXTUAL EDITORIAL COM FADE-OUT SUAVE */}
+          {/* 3. DESAPARECIMENTO TOTAL DO TEXTO NO FINAL DO SCROLL */}
           <div
             className={`absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 text-center transition-opacity duration-150 ${
               isHidden ? "opacity-0 pointer-events-none hidden invisible" : ""
@@ -323,7 +279,7 @@ export function HeroScrollCanvas() {
           </div>
 
           {/* Máscara de fusão com a próxima seção */}
-          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20" />
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 sm:h-56 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20" />
         </div>
       </div>
     </>
