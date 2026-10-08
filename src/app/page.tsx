@@ -306,14 +306,14 @@ export default function Page() {
       </header>
 
       {/* 2. HERO CINEMÁTICA FLUIDA A 60FPS (DESOBSTRUÇÃO TOTAL DO ROSTO) */}
-      <section className="relative w-full h-[92vh] bg-[#12100E] overflow-hidden flex flex-col justify-end">
+      <section className="overflow-hidden relative w-full h-[90vh] bg-[#12100E] flex flex-col justify-end">
         <video 
           src="/midias/intro-fernanda.mp4" 
           autoPlay 
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 w-full h-full object-cover object-center" 
+          className="absolute inset-0 w-full h-full scale-110 object-cover object-[62%_center]" 
         />
         
         {/* Gradiente escuro sólido cobrindo os últimos 40% da altura */}
