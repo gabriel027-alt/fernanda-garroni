@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
+
+const TOTAL_FRAMES = 40;
+const FRAMES = Array.from(
+  { length: TOTAL_FRAMES },
+  (_, i) => `/midias/hero-frames/frame-${String(i + 1).padStart(3, "0")}.jpg`
+);
 
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
   const rafIdRef = useRef<number | null>(null);
 
   // Estados do Loader e da Apresentação
@@ -14,185 +20,159 @@ export function HeroScrollCanvas() {
   const [isMounted, setIsMounted] = useState(true);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // 1. CARREGAMENTO INICIAL CONTROLADO (SEM SPINNERS NATIVOS E SEM FLICKER)
-  useEffect(() => {
-    let p = 0;
-    const interval = setInterval(() => {
-      p += Math.floor(Math.random() * 12) + 8;
-      if (p >= 95) {
-        p = 95;
-        clearInterval(interval);
-      }
-      setLoadingProgress(p);
-    }, 50);
+  // Função matemática para renderização COVER sem distorção e sem barras pretas
+  const drawCover = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement | undefined,
+      w: number,
+      h: number
+    ) => {
+      if (!img || !img.complete || img.naturalWidth === 0) return;
 
-    const finishLoading = () => {
-      clearInterval(interval);
-      setLoadingProgress(100);
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const screenRatio = w / h;
 
-      // Fade-out suave de 500ms e desmontagem definitiva do componente
-      setTimeout(() => {
-        setIsLoaded(true);
-        setTimeout(() => {
-          setIsMounted(false);
-        }, 500);
-      }, 200);
-    };
+      let renderW = w;
+      let renderH = h;
+      let x = 0;
+      let y = 0;
 
-    // Fallback de segurança para redes lentas
-    const fallbackTimer = setTimeout(finishLoading, 2200);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(fallbackTimer);
-    };
-  }, []);
-
-  // 2. ARQUITETURA DA HERO: CANVAS 2D COM BUFFER SUAVE A 60 FPS
-  useEffect(() => {
-    // Cria elemento de vídeo oculto em memória para decodificação suave e nativa por hardware
-    const video = document.createElement("video");
-    video.src = "/midias/intro-fernanda.mp4";
-    video.muted = true;
-    video.playsInline = true;
-    video.setAttribute("webkit-playsinline", "true");
-    video.setAttribute("playsinline", "true");
-    video.autoplay = true;
-    video.loop = true;
-    video.preload = "auto";
-    video.style.display = "none";
-    document.body.appendChild(video);
-    videoRef.current = video;
-
-    const playVideo = () => {
-      const promise = video.play();
-      if (promise !== undefined) {
-        promise.catch(() => {
-          video.muted = true;
-          video.play().catch(() => {});
-        });
-      }
-    };
-
-    playVideo();
-
-    // Gestos de interação de fallback caso a política de autoplay do browser exija
-    const handleUserInteraction = () => {
-      if (video.paused) {
-        playVideo();
-      }
-    };
-    window.addEventListener("touchstart", handleUserInteraction, { once: true, passive: true });
-    window.addEventListener("click", handleUserInteraction, { once: true, passive: true });
-
-    // Referência reativa para o progresso de rolagem
-    let progressRef = 0;
-
-    const updateScrollMetrics = () => {
-      const container = containerRef.current || document.getElementById("hero-scroll-container");
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const maxScroll = container.offsetHeight - window.innerHeight;
-      if (maxScroll <= 0) return;
-
-      const progress = Math.min(Math.max(-rect.top / maxScroll, 0), 1);
-      progressRef = progress;
-
-      // Controle estrito de fade-out do texto:
-      // - De 0 a 60%: opacity = 1
-      // - De 60% a 85%: fade progressivo até 0
-      // - Acima de 85%: opacity = 0
-      if (progress <= 0.60) {
-        setTextOpacity(1);
-      } else if (progress <= 0.85) {
-        const fade = 1 - (progress - 0.60) / (0.85 - 0.60);
-        setTextOpacity(Math.max(0, fade));
+      if (screenRatio > imgRatio) {
+        renderH = w / imgRatio;
+        y = (h - renderH) / 2;
       } else {
-        setTextOpacity(0);
+        renderW = h * imgRatio;
+        x = (w - renderW) / 2;
       }
-    };
 
-    window.addEventListener("scroll", updateScrollMetrics, { passive: true });
-    window.addEventListener("resize", updateScrollMetrics, { passive: true });
-    updateScrollMetrics();
+      ctx.drawImage(img, x, y, renderW, renderH);
+    },
+    []
+  );
 
-    // Redimensionamento matemático do Canvas com suporte a Retina / High-DPI
-    const resizeCanvas = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+  // Renderização instantânea do fotograma no Canvas sincronizado com o scroll
+  const render = useCallback(() => {
+    const container = containerRef.current || document.getElementById("hero-scroll-container");
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(window.innerWidth * dpr);
-      canvas.height = Math.round(window.innerHeight * dpr);
-    };
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    const rect = container.getBoundingClientRect();
+    const maxScroll = container.offsetHeight - window.innerHeight;
+    const progress = maxScroll > 0 ? Math.min(Math.max(-rect.top / maxScroll, 0), 1) : 0;
+
+    const frameIndex = Math.min(
+      TOTAL_FRAMES - 1,
+      Math.floor(progress * TOTAL_FRAMES)
+    );
+
+    const images = imagesRef.current;
+    if (images[frameIndex]) {
+      drawCover(ctx, images[frameIndex], canvas.width, canvas.height);
+    }
+
+    // Fade-out progressivo do texto
+    if (progress > 0.65) {
+      setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 3.5));
+    } else {
+      setTextOpacity(1);
+    }
+  }, [drawCover]);
+
+  // Redimensionamento de alta definição (High-DPI / Retina)
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+
+    render();
+  }, [render]);
+
+  // Pré-carregamento dos 40 fotogramas na memória RAM
+  useEffect(() => {
+    let loadedCount = 0;
+    const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
+
+    FRAMES.forEach((src, idx) => {
+      const img = new Image();
+      img.src = src;
+
+      img.onload = () => {
+        loadedCount++;
+        const pct = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+        setLoadingProgress(pct);
+
+        if (idx === 0) {
+          resizeCanvas();
+        }
+
+        if (loadedCount === TOTAL_FRAMES) {
+          resizeCanvas();
+          setTimeout(() => {
+            setIsLoaded(true);
+            setTimeout(() => {
+              setIsMounted(false);
+            }, 500);
+          }, 200);
+        }
+      };
+
+      img.onerror = () => {
+        loadedCount++;
+        const pct = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+        setLoadingProgress(pct);
+
+        if (loadedCount === TOTAL_FRAMES) {
+          resizeCanvas();
+          setTimeout(() => {
+            setIsLoaded(true);
+            setTimeout(() => {
+              setIsMounted(false);
+            }, 500);
+          }, 200);
+        }
+      };
+
+      images[idx] = img;
+    });
+
+    imagesRef.current = images;
 
     window.addEventListener("resize", resizeCanvas, { passive: true });
     resizeCanvas();
 
-    // Loop contínuo a 60 FPS desenhando o vídeo em tempo real no Canvas (drawCover fullscreen)
-    const renderLoop = () => {
-      const canvas = canvasRef.current;
-      const v = videoRef.current;
-
-      if (canvas && v && v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) {
-        const ctx = canvas.getContext("2d", { alpha: false });
-        if (ctx) {
-          const w = canvas.width;
-          const h = canvas.height;
-          const imgRatio = v.videoWidth / v.videoHeight;
-          const screenRatio = w / h;
-
-          let renderW = w;
-          let renderH = h;
-          let x = 0;
-          let y = 0;
-
-          // Cálculo Cover exato sem faixas pretas
-          if (screenRatio > imgRatio) {
-            renderH = w / imgRatio;
-            y = (h - renderH) / 2;
-          } else {
-            renderW = h * imgRatio;
-            x = (w - renderW) / 2;
-          }
-
-          // Leve efeito de escala e paralaxe da cena acoplado ao scroll
-          const scale = 1 + progressRef * 0.08;
-
-          ctx.save();
-          if (scale !== 1) {
-            ctx.translate(w / 2, h / 2);
-            ctx.scale(scale, scale);
-            ctx.translate(-w / 2, -h / 2);
-          }
-          ctx.drawImage(v, x, y, renderW, renderH);
-          ctx.restore();
-        }
-      }
-
-      rafIdRef.current = requestAnimationFrame(renderLoop);
-    };
-
-    rafIdRef.current = requestAnimationFrame(renderLoop);
-
     return () => {
-      window.removeEventListener("scroll", updateScrollMetrics);
-      window.removeEventListener("resize", updateScrollMetrics);
       window.removeEventListener("resize", resizeCanvas);
-      window.removeEventListener("touchstart", handleUserInteraction);
-      window.removeEventListener("click", handleUserInteraction);
+    };
+  }, [resizeCanvas]);
 
+  // Scroll listener acoplado ao requestAnimationFrame
+  useEffect(() => {
+    const handleScroll = () => {
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
+      rafIdRef.current = requestAnimationFrame(() => {
+        render();
+      });
+    };
 
-      if (video && video.parentNode) {
-        video.pause();
-        video.parentNode.removeChild(video);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, []);
+  }, [render]);
 
   const isHidden = textOpacity <= 0;
 
@@ -233,17 +213,17 @@ export function HeroScrollCanvas() {
         </div>
       )}
 
-      {/* 2. HERO SCROLL COM CANVAS 2D E BUFFER SUAVE A 60 FPS */}
+      {/* 2. HERO SCROLL COM CANVAS 2D DE FOTOGRAMAS (60 FPS NATIVO) */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
-        className="relative h-[250vh] sm:h-[300vh] w-full bg-[#141210]"
+        className="relative h-[350vh] w-full bg-[#141210]"
         aria-label="Apresentação Interativa • Fernanda Garroni"
       >
         <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex items-center justify-center select-none">
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.94] contrast-[1.03]"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02]"
           />
 
           {/* Máscaras de Contraste e Profundidade */}
@@ -331,7 +311,7 @@ export function HeroScrollCanvas() {
           </div>
 
           {/* Máscara de fusão com a próxima seção */}
-          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 sm:h-56 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20" />
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20" />
         </div>
       </div>
     </>
