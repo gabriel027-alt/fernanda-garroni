@@ -21,40 +21,40 @@ export function HeroScrollCanvas() {
   const [loaded, setLoaded] = useState(false);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // Função para desenhar a imagem no Canvas com proporção matemática cover sem distorção
+  // Função para desenhar a imagem no Canvas garantindo proporção matemática cover real sem faixas pretas
   const drawCover = useCallback(
     (
       ctx: CanvasRenderingContext2D,
       img: HTMLImageElement | undefined,
-      width: number,
-      height: number,
+      w: number,
+      h: number,
       alpha = 1
     ) => {
       if (!img || !img.complete || img.naturalWidth === 0) return;
       ctx.save();
       ctx.globalAlpha = alpha;
       const imgRatio = img.naturalWidth / img.naturalHeight;
-      const canvasRatio = width / height;
-      let drawWidth = width;
-      let drawHeight = height;
-      let offsetX = 0;
-      let offsetY = 0;
+      const screenRatio = w / h;
+      let renderW = w;
+      let renderH = h;
+      let x = 0;
+      let y = 0;
 
-      if (imgRatio > canvasRatio) {
-        drawWidth = height * imgRatio;
-        offsetX = (width - drawWidth) / 2;
+      if (screenRatio > imgRatio) {
+        renderH = w / imgRatio;
+        y = (h - renderH) / 2;
       } else {
-        drawHeight = width / imgRatio;
-        offsetY = (height - drawHeight) / 2;
+        renderW = h * imgRatio;
+        x = (w - renderW) / 2;
       }
 
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      ctx.drawImage(img, x, y, renderW, renderH);
       ctx.restore();
     },
     []
   );
 
-  // Renderização contínua a 60fps no Canvas interpolando os frames pelo scroll
+  // Renderização contínua no Canvas a 60fps interpolando os frames pelo scroll
   const render = useCallback(() => {
     const container = containerRef.current || document.getElementById("hero-scroll-container");
     const canvas = canvasRef.current;
@@ -68,12 +68,12 @@ export function HeroScrollCanvas() {
     const currentScroll = Math.max(0, -rect.top);
     const progress = maxScroll > 0 ? Math.min(Math.max(currentScroll / maxScroll, 0), 1) : 0;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const w = canvas.width;
+    const h = canvas.height;
 
-    // Fundo ébano profundo
+    // Fundo base ébano profundo
     ctx.fillStyle = "#141210";
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, w, h);
 
     // Interpolação suave de frames
     const frameIndex = progress * (FRAMES.length - 1);
@@ -83,10 +83,10 @@ export function HeroScrollCanvas() {
 
     const images = imagesRef.current;
     if (images[currentIdx]) {
-      drawCover(ctx, images[currentIdx], width, height, 1);
+      drawCover(ctx, images[currentIdx], w, h, 1);
     }
     if (blend > 0 && images[nextIdx]) {
-      drawCover(ctx, images[nextIdx], width, height, blend);
+      drawCover(ctx, images[nextIdx], w, h, blend);
     }
 
     // Fade-out do texto no final do scroll
@@ -97,7 +97,7 @@ export function HeroScrollCanvas() {
     }
   }, [drawCover]);
 
-  // Redimensionamento com suporte a High-DPI / Retina
+  // Redimensionamento estrito com suporte a Retina / High-DPI
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -106,14 +106,13 @@ export function HeroScrollCanvas() {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-    }
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
     render();
   }, [render]);
 
-  // Carregamento de imagens e motor de pré-carregamento idêntico ao da Dayane
+  // Pré-carregamento dos 5 frames autorais com tela cheia de loading
   useEffect(() => {
     let loadedCount = 0;
     const images: HTMLImageElement[] = new Array(FRAMES.length);
@@ -241,7 +240,7 @@ export function HeroScrollCanvas() {
             className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 pointer-events-none text-center transition-opacity duration-300"
             style={{ opacity: textOpacity }}
           >
-            <div className="max-w-4xl mx-auto flex flex-col items-center">
+            <div className="w-full max-w-xl sm:max-w-3xl md:max-w-4xl mx-auto px-5 sm:px-6 flex flex-col items-center">
               <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 shadow-lg pointer-events-auto">
                 <span className="text-[#C99065]">✨</span>
                 <span className="font-mono text-[10px] sm:text-xs tracking-[0.35em] uppercase text-white/90">
@@ -249,7 +248,7 @@ export function HeroScrollCanvas() {
                 </span>
               </div>
 
-              <h1 className="font-light tracking-tighter text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white/95 text-center leading-[1.12] [text-wrap:balance] max-w-3xl drop-shadow-[0_4px_16px_rgba(0,0,0,0.60)]">
+              <h1 className="font-light tracking-tighter text-3xl sm:text-5xl md:text-6xl text-white/95 text-center leading-[1.15] [text-wrap:balance] drop-shadow-[0_4px_16px_rgba(0,0,0,0.70)]">
                 Sua melhor versão com{" "}
                 <span className="font-serif italic font-normal text-[#E0CEB5] drop-shadow-[0_2px_12px_rgba(201,144,101,0.45)]">
                   Morenas Iluminadas
@@ -257,21 +256,21 @@ export function HeroScrollCanvas() {
                 e corte visagista sob medida.
               </h1>
 
-              <p className="font-mono text-xs sm:text-sm tracking-[0.25em] uppercase text-white/80 mt-5 sm:mt-6 drop-shadow-[0_2px_8px_rgba(0,0,0,0.60)]">
+              <p className="font-mono text-[11px] sm:text-xs md:text-sm tracking-[0.2em] uppercase text-white/80 mt-4 sm:mt-6 drop-shadow-[0_2px_8px_rgba(0,0,0,0.70)]">
                 FERNANDA GARRONI — ATELIÊ BOUTIQUE • PORTO ALEGRE (AV. NONOAI, 151)
               </p>
 
-              <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5 pointer-events-auto">
+              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center w-full sm:w-auto gap-3 pointer-events-auto">
                 <a
                   href="#triagem-inteligente"
-                  className="min-h-[48px] px-8 py-3.5 bg-[#C99065] hover:bg-[#b57f56] text-[#141210] font-sans font-bold text-xs sm:text-sm tracking-wider uppercase rounded-full shadow-2xl transition-all cursor-pointer inline-flex items-center gap-2 active:scale-95"
+                  className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 bg-[#C99065] hover:bg-[#b57f56] text-[#141210] font-sans font-bold text-xs sm:text-sm tracking-wider uppercase rounded-full shadow-2xl transition-all cursor-pointer inline-flex items-center justify-center gap-2 active:scale-95 text-center"
                 >
                   <span>Agendar Avaliação VIP</span>
                   <span>→</span>
                 </a>
                 <a
                   href="#procedimentos"
-                  className="min-h-[48px] px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/25 font-sans font-semibold text-xs tracking-wider uppercase rounded-full transition-all cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto min-h-[48px] px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/25 font-sans font-semibold text-xs tracking-wider uppercase rounded-full transition-all cursor-pointer active:scale-95 text-center flex items-center justify-center"
                 >
                   <span>Explorar Procedimentos</span>
                 </a>
