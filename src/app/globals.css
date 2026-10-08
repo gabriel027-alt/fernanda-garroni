@@ -40,6 +40,15 @@
   outline-offset: 3px;
 }
 
+/* Ocultar spinners e controles nativos de vídeo para evitar FOUC e barras em browsers mobile */
+video::-webkit-media-controls {
+  display: none !important;
+}
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
 @keyframes marquee {
   0% { transform: translateX(0%); }
   100% { transform: translateX(-50%); }

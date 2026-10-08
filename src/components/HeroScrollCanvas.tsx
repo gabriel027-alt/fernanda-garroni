@@ -1,150 +1,183 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const rafIdRef = useRef<number | null>(null);
 
   // Estados do Loader e da Apresentação
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [isUnmounted, setIsUnmounted] = useState(false);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // Sincronização do vídeo no scroll via requestAnimationFrame
-  const syncVideoWithScroll = useCallback(() => {
-    const video = videoRef.current;
-    const container = containerRef.current || document.getElementById("hero-scroll-container");
-    if (!video || !container) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const totalScrollableDistance = container.offsetHeight - window.innerHeight;
-    if (totalScrollableDistance <= 0) return;
-
-    const progress = Math.min(Math.max(-containerRect.top / totalScrollableDistance, 0), 1);
-
-    if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-      video.currentTime = progress * video.duration;
-    }
-
-    // Fade-out suave do texto no final do scroll
-    if (progress > 0.7) {
-      setTextOpacity(Math.max(0, 1 - (progress - 0.7) * 3.5));
-    } else {
-      setTextOpacity(1);
-    }
-  }, []);
-
-  // Gerenciamento de carregamento do vídeo e pré-loader
+  // 1. ELIMINAR O SPINNER AZUL E O REINÍCIO DO LOADER
   useEffect(() => {
     const video = videoRef.current;
-    let progress = 20;
-    setLoadingProgress(progress);
+    let currentProgress = 0;
+    let isFinished = false;
 
+    // Leitura contínua de 0% a 100% sem reiniciar
     const interval = setInterval(() => {
-      progress += Math.floor(Math.random() * 15) + 12;
-      if (progress >= 95) {
-        progress = 95;
+      if (isFinished) return;
+      currentProgress += Math.floor(Math.random() * 8) + 6;
+      if (currentProgress >= 90) {
+        currentProgress = 90;
         clearInterval(interval);
       }
-      setLoadingProgress(progress);
-    }, 100);
+      setLoadingProgress(currentProgress);
+    }, 50);
 
-    const handleReady = () => {
+    const finishLoading = () => {
+      if (isFinished) return;
+      isFinished = true;
       clearInterval(interval);
       setLoadingProgress(100);
+
+      // Fade-out suave (transition-opacity duration-500 opacity-0 pointer-events-none) e desmontagem
       setTimeout(() => {
         setLoaded(true);
-      }, 300);
+        setTimeout(() => {
+          setIsUnmounted(true);
+        }, 550);
+      }, 200);
     };
 
     if (video) {
       video.pause();
-      if (video.readyState >= 2) {
-        handleReady();
+      video.setAttribute("webkit-playsinline", "true");
+      video.setAttribute("playsinline", "true");
+
+      if (video.readyState >= 3) {
+        finishLoading();
       } else {
-        video.addEventListener("loadeddata", handleReady, { once: true });
-        video.addEventListener("canplay", handleReady, { once: true });
+        video.addEventListener("canplaythrough", finishLoading, { once: true });
+        video.addEventListener("canplay", finishLoading, { once: true });
+        video.addEventListener("loadeddata", finishLoading, { once: true });
       }
     }
 
     // Fallback de segurança para redes com restrições
-    const safetyTimer = setTimeout(() => {
-      handleReady();
+    const fallbackTimer = setTimeout(() => {
+      finishLoading();
     }, 2500);
 
     return () => {
       clearInterval(interval);
-      clearTimeout(safetyTimer);
+      clearTimeout(fallbackTimer);
       if (video) {
-        video.removeEventListener("loadeddata", handleReady);
-        video.removeEventListener("canplay", handleReady);
+        video.removeEventListener("canplaythrough", finishLoading);
+        video.removeEventListener("canplay", finishLoading);
+        video.removeEventListener("loadeddata", finishLoading);
       }
     };
   }, []);
 
-  // Listener de Scroll acoplado ao requestAnimationFrame
+  // 2. CORREÇÃO DA DECODIFICAÇÃO DO VÍDEO (SEM PULOS DE FRAMES)
   useEffect(() => {
-    const handleScroll = () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
+    const video = videoRef.current;
+    const container = containerRef.current || document.getElementById("hero-scroll-container");
+    if (!video) return;
+
+    let isSeeking = false;
+    let targetTime = 0;
+
+    const onScroll = () => {
+      const activeContainer = container || document.getElementById("hero-scroll-container");
+      if (!activeContainer || !video.duration || isNaN(video.duration)) return;
+
+      const rect = activeContainer.getBoundingClientRect();
+      const maxScroll = activeContainer.offsetHeight - window.innerHeight;
+      if (maxScroll <= 0) return;
+
+      const progress = Math.min(Math.max(-rect.top / maxScroll, 0), 1);
+
+      targetTime = progress * video.duration;
+
+      if (!isSeeking && Math.abs(video.currentTime - targetTime) > 0.03) {
+        isSeeking = true;
+        requestAnimationFrame(() => {
+          video.currentTime = targetTime;
+        });
       }
-      rafIdRef.current = requestAnimationFrame(() => {
-        syncVideoWithScroll();
-      });
+
+      // Fade-out rigoroso do texto entre 60% e 80% do scroll
+      if (progress > 0.60) {
+        const newOpacity = Math.max(0, 1 - (progress - 0.60) * 5);
+        setTextOpacity(newOpacity);
+      } else {
+        setTextOpacity(1);
+      }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll, { passive: true });
-    handleScroll();
+    const onSeeked = () => {
+      isSeeking = false;
+      if (Math.abs(video.currentTime - targetTime) > 0.03) {
+        isSeeking = true;
+        requestAnimationFrame(() => {
+          video.currentTime = targetTime;
+        });
+      }
+    };
+
+    video.addEventListener("seeked", onSeeked);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+
+    const onLoadedMetadata = () => {
+      onScroll();
+    };
+    video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
+    if (video.duration) {
+      onScroll();
+    }
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [syncVideoWithScroll]);
+  }, []);
 
   return (
     <>
-      {/* 2. LOADER INICIAL COM A LOGO OFICIAL (Z-50) */}
-      <div
-        className={`fixed inset-0 z-50 bg-[#141210] flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-700 ${
-          loaded ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
-        aria-hidden={loaded}
-      >
-        <div className="flex flex-col items-center max-w-xs w-full">
-          {/* Avatar circular com a imagem oficial */}
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-[#C99065]/50 shadow-md bg-[#141210] mb-5 flex items-center justify-center shrink-0">
+      {/* 1. LOADER INICIAL COM A LOGO OFICIAL (Z-50) */}
+      {!isUnmounted && (
+        <div
+          className={`fixed inset-0 z-50 bg-[#141210] w-screen h-screen flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-500 ${
+            loaded ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
+          aria-hidden={loaded}
+        >
+          <div className="flex flex-col items-center max-w-xs w-full">
+            {/* Logo Oficial Centralizada */}
             <img
               src="/midias/foto-logo-fernanda.jpg"
-              alt="Logo Fernanda Garroni"
-              className="w-full h-full object-cover"
+              alt="Fernanda Garroni"
+              className="w-20 h-20 rounded-full object-cover border border-[#C99065]/50 shadow-md mb-4"
             />
-          </div>
-          <span className="font-serif italic text-2xl text-[#FAF3F0] mb-4 tracking-wider">
-            Fernanda Garroni • Ateliê Boutique
-          </span>
-          <div className="w-48 h-[2px] bg-white/10 overflow-hidden rounded-full mb-3">
-            <div
-              className="h-full bg-[#C99065] transition-all duration-150 ease-out"
-              style={{ width: `${loadingProgress}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between w-48 text-xs font-mono tracking-widest text-[#E0CEB5]/70">
-            <span>CARREGANDO</span>
-            <span className="text-[#FAF3F0] font-semibold">
-              {String(loadingProgress).padStart(3, "0")}%
+            <span className="font-serif italic text-2xl text-[#FAF3F0] mb-4 tracking-wider">
+              Fernanda Garroni • Ateliê Boutique
             </span>
+            <div className="w-48 h-[2px] bg-white/10 overflow-hidden rounded-full mb-3">
+              <div
+                className="h-full bg-[#C99065] transition-all duration-150 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between w-48 text-xs font-mono tracking-widest text-[#E0CEB5]/70">
+              <span>CARREGANDO</span>
+              <span className="text-[#FAF3F0] font-semibold">
+                {String(loadingProgress).padStart(3, "0")}%
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 1. HERO SCROLL COM VÍDEO OFICIAL */}
+      {/* 2. HERO SCROLL COM VÍDEO OFICIAL */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
@@ -155,20 +188,25 @@ export function HeroScrollCanvas() {
           <video
             ref={videoRef}
             src="/midias/intro-fernanda.mp4"
-            playsInline
             muted
+            playsInline
+            {...({ "webkit-playsinline": "true" } as any)}
             preload="auto"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02]"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none filter brightness-[0.92] contrast-[1.03]"
           />
 
           {/* Máscaras de Contraste e Profundidade */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50 pointer-events-none z-10" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.45)_0%,transparent_70%)] pointer-events-none z-10" />
 
-          {/* Conteúdo Editorial Central Fixo (z-20) com Fade no final */}
+          {/* 3. REMOÇÃO COMPLETA DA CAIXA DE TEXTO NO FIM DO SCROLL */}
           <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 pointer-events-none text-center transition-opacity duration-300"
-            style={{ opacity: textOpacity }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 text-center transition-opacity duration-150"
+            style={{
+              opacity: textOpacity,
+              visibility: textOpacity <= 0 ? "hidden" : "visible",
+              pointerEvents: textOpacity <= 0 ? "none" : "auto",
+            }}
           >
             <div className="w-full max-w-xl sm:max-w-3xl md:max-w-4xl mx-auto px-5 sm:px-6 flex flex-col items-center">
               <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 shadow-lg pointer-events-auto">
