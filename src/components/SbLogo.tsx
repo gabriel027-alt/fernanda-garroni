@@ -24,35 +24,13 @@ export function SbLogo({
 
   return (
     <div className={`inline-flex items-center gap-3 select-none ${className}`}>
-      {/* Monograma Vetorial Sagrado FG */}
-      <div className="relative h-full aspect-square rounded-full overflow-hidden border border-[#C5A880]/50 shrink-0 shadow-xs bg-[#1C1917] flex items-center justify-center p-1.5">
-        <svg
-          viewBox="0 0 100 100"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full"
-          aria-hidden="true"
-        >
-          {/* Círculo com detalhes em ouro champanhe */}
-          <circle cx="50" cy="50" r="46" stroke="#C5A880" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-          <circle cx="50" cy="50" r="42" stroke="#C5A880" strokeWidth="1" opacity="0.9" />
-          
-          {/* Monograma FG estilizado */}
-          <text
-            x="50"
-            y="58"
-            fontFamily="'Playfair Display', Georgia, serif"
-            fontSize="34"
-            fontWeight="bold"
-            fontStyle="italic"
-            fill="#E6C99B"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            letterSpacing="-1"
-          >
-            FG
-          </text>
-        </svg>
+      {/* Logotipo Oficial da Marca com Imagem Oficial */}
+      <div className="relative h-full aspect-square rounded-full overflow-hidden border border-[#C5A880]/50 shrink-0 shadow-xs bg-[#141210] flex items-center justify-center">
+        <img
+          src="/midias/foto-logo-fernanda.jpg"
+          alt="Logo Fernanda Garroni"
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* TEXTO INSTITUCIONAL COMPLETO */}

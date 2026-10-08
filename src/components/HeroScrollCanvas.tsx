@@ -2,18 +2,9 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
-const FRAMES = [
-  "/midias/frame1-fernanda.jpg",
-  "/midias/frame2-fernanda.jpg",
-  "/midias/frame3-fernanda.jpg",
-  "/midias/frame4-fernanda.jpg",
-  "/midias/frame5-fernanda.jpg",
-];
-
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const rafIdRef = useRef<number | null>(null);
 
   // Estados do Loader e da Apresentação
@@ -21,174 +12,105 @@ export function HeroScrollCanvas() {
   const [loaded, setLoaded] = useState(false);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // Função para desenhar a imagem no Canvas garantindo proporção matemática cover real sem faixas pretas
-  const drawCover = useCallback(
-    (
-      ctx: CanvasRenderingContext2D,
-      img: HTMLImageElement | undefined,
-      w: number,
-      h: number,
-      alpha = 1
-    ) => {
-      if (!img || !img.complete || img.naturalWidth === 0) return;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      const screenRatio = w / h;
-      let renderW = w;
-      let renderH = h;
-      let x = 0;
-      let y = 0;
-
-      if (screenRatio > imgRatio) {
-        renderH = w / imgRatio;
-        y = (h - renderH) / 2;
-      } else {
-        renderW = h * imgRatio;
-        x = (w - renderW) / 2;
-      }
-
-      ctx.drawImage(img, x, y, renderW, renderH);
-      ctx.restore();
-    },
-    []
-  );
-
-  // Renderização contínua no Canvas a 60fps interpolando os frames pelo scroll
-  const render = useCallback(() => {
+  // Sincronização do vídeo no scroll via requestAnimationFrame
+  const syncVideoWithScroll = useCallback(() => {
+    const video = videoRef.current;
     const container = containerRef.current || document.getElementById("hero-scroll-container");
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return;
+    if (!video || !container) return;
 
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
+    const containerRect = container.getBoundingClientRect();
+    const totalScrollableDistance = container.offsetHeight - window.innerHeight;
+    if (totalScrollableDistance <= 0) return;
 
-    const rect = container.getBoundingClientRect();
-    const maxScroll = container.offsetHeight - window.innerHeight;
-    const currentScroll = Math.max(0, -rect.top);
-    const progress = maxScroll > 0 ? Math.min(Math.max(currentScroll / maxScroll, 0), 1) : 0;
+    const progress = Math.min(Math.max(-containerRect.top / totalScrollableDistance, 0), 1);
 
-    const w = canvas.width;
-    const h = canvas.height;
-
-    // Fundo base ébano profundo
-    ctx.fillStyle = "#141210";
-    ctx.fillRect(0, 0, w, h);
-
-    // Interpolação suave de frames
-    const frameIndex = progress * (FRAMES.length - 1);
-    const currentIdx = Math.floor(frameIndex);
-    const nextIdx = Math.min(currentIdx + 1, FRAMES.length - 1);
-    const blend = frameIndex - currentIdx;
-
-    const images = imagesRef.current;
-    if (images[currentIdx]) {
-      drawCover(ctx, images[currentIdx], w, h, 1);
-    }
-    if (blend > 0 && images[nextIdx]) {
-      drawCover(ctx, images[nextIdx], w, h, blend);
+    if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+      video.currentTime = progress * video.duration;
     }
 
-    // Fade-out do texto no final do scroll
+    // Fade-out suave do texto no final do scroll
     if (progress > 0.7) {
       setTextOpacity(Math.max(0, 1 - (progress - 0.7) * 3.5));
     } else {
       setTextOpacity(1);
     }
-  }, [drawCover]);
+  }, []);
 
-  // Redimensionamento estrito com suporte a Retina / High-DPI
-  const resizeCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-
-    render();
-  }, [render]);
-
-  // Pré-carregamento dos 5 frames autorais com tela cheia de loading
+  // Gerenciamento de carregamento do vídeo e pré-loader
   useEffect(() => {
-    let loadedCount = 0;
-    const images: HTMLImageElement[] = new Array(FRAMES.length);
+    const video = videoRef.current;
+    let progress = 20;
+    setLoadingProgress(progress);
 
-    FRAMES.forEach((src, i) => {
-      const img = new Image();
-      img.src = src;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 15) + 12;
+      if (progress >= 95) {
+        progress = 95;
+        clearInterval(interval);
+      }
+      setLoadingProgress(progress);
+    }, 100);
 
-      img.onload = () => {
-        loadedCount += 1;
-        const percent = Math.round((loadedCount / FRAMES.length) * 100);
-        setLoadingProgress(percent);
+    const handleReady = () => {
+      clearInterval(interval);
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setLoaded(true);
+      }, 300);
+    };
 
-        // Se for o primeiro frame, renderiza imediatamente para evitar flash
-        if (i === 0) {
-          resizeCanvas();
-        }
+    if (video) {
+      video.pause();
+      if (video.readyState >= 2) {
+        handleReady();
+      } else {
+        video.addEventListener("loadeddata", handleReady, { once: true });
+        video.addEventListener("canplay", handleReady, { once: true });
+      }
+    }
 
-        if (loadedCount === FRAMES.length) {
-          resizeCanvas();
-          setTimeout(() => {
-            setLoaded(true);
-          }, 300);
-        }
-      };
-
-      img.onerror = () => {
-        loadedCount += 1;
-        const percent = Math.round((loadedCount / FRAMES.length) * 100);
-        setLoadingProgress(percent);
-        if (loadedCount === FRAMES.length) {
-          resizeCanvas();
-          setTimeout(() => {
-            setLoaded(true);
-          }, 300);
-        }
-      };
-
-      images[i] = img;
-    });
-
-    imagesRef.current = images;
-
-    window.addEventListener("resize", resizeCanvas, { passive: true });
-    resizeCanvas();
+    // Fallback de segurança para redes com restrições
+    const safetyTimer = setTimeout(() => {
+      handleReady();
+    }, 2500);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
+      clearInterval(interval);
+      clearTimeout(safetyTimer);
+      if (video) {
+        video.removeEventListener("loadeddata", handleReady);
+        video.removeEventListener("canplay", handleReady);
+      }
     };
-  }, [resizeCanvas]);
+  }, []);
 
-  // Listener de Scroll acoplado ao RequestAnimationFrame a 60fps
+  // Listener de Scroll acoplado ao requestAnimationFrame
   useEffect(() => {
     const handleScroll = () => {
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
       rafIdRef.current = requestAnimationFrame(() => {
-        render();
+        syncVideoWithScroll();
       });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [render]);
+  }, [syncVideoWithScroll]);
 
   return (
     <>
-      {/* 2. LOADER INICIAL IDÊNTICO AO DA DAYANE (Z-50) */}
+      {/* 2. LOADER INICIAL COM A LOGO OFICIAL (Z-50) */}
       <div
         className={`fixed inset-0 z-50 bg-[#141210] flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-700 ${
           loaded ? "opacity-0 pointer-events-none" : "opacity-100"
@@ -196,9 +118,13 @@ export function HeroScrollCanvas() {
         aria-hidden={loaded}
       >
         <div className="flex flex-col items-center max-w-xs w-full">
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-[#C99065]/50 shadow-md bg-[#1C1917] mb-5 flex items-center justify-center shrink-0">
-            <span className="font-serif italic font-bold text-2xl text-[#E0CEB5]">FG</span>
-            <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-[#C99065]/20 pointer-events-none" />
+          {/* Avatar circular com a imagem oficial */}
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-[#C99065]/50 shadow-md bg-[#141210] mb-5 flex items-center justify-center shrink-0">
+            <img
+              src="/midias/foto-logo-fernanda.jpg"
+              alt="Logo Fernanda Garroni"
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="font-serif italic text-2xl text-[#FAF3F0] mb-4 tracking-wider">
             Fernanda Garroni • Ateliê Boutique
@@ -218,7 +144,7 @@ export function HeroScrollCanvas() {
         </div>
       </div>
 
-      {/* 3. IMPLEMENTAÇÃO DO HERO SCROLL COM CANVAS (ESTRUTURA DAYANE) */}
+      {/* 1. HERO SCROLL COM VÍDEO OFICIAL */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
@@ -226,9 +152,13 @@ export function HeroScrollCanvas() {
         aria-label="Apresentação Interativa • Fernanda Garroni"
       >
         <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex items-center justify-center select-none">
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02] transform-gpu"
+          <video
+            ref={videoRef}
+            src="/midias/intro-fernanda.mp4"
+            playsInline
+            muted
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02]"
           />
 
           {/* Máscaras de Contraste e Profundidade */}
