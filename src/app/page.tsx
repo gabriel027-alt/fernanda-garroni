@@ -195,7 +195,7 @@ const CURVATURE_GALLERY = [
 // FOTOS DA ESPECIALISTA NO ATELIÊ
 const SPECIALIST_FRAMES = [
   {
-    src: "/midias/frame1-fernanda.jpg",
+    src: "/midias/frame1-fernanda.png",
     title: "Fernanda Garroni",
     subtitle: "Visagista Titular",
   },
@@ -231,6 +231,16 @@ export default function Page() {
     "balanco-movimento-video": true,
   });
   const isDragging = useRef(false);
+
+  // ESTADOS DA TRIAGEM INTELIGENTE
+  const [triageCurvatura, setTriageCurvatura] = useState<string>("Fio Liso");
+  const [triageNuance, setTriageNuance] = useState<string>("Marrom Marcante");
+  const [triageQuimica, setTriageQuimica] = useState<string>("Cabelo Natural");
+
+  const generateTriageWhatsAppUrl = () => {
+    const text = `Olá, Fernanda! Fiz a triagem inteligente no site e gostaria de agendar uma avaliação:\n\n• Tipo de curvatura: ${triageCurvatura}\n• Nuance desejada: ${triageNuance}\n• Química anterior: ${triageQuimica}\n\nQual é a disponibilidade de horário na Sala 205?`;
+    return `https://wa.me/5551999999999?text=${encodeURIComponent(text)}`;
+  };
 
   const currentCase = BEFORE_AFTER_CASES[selectedCaseIdx] || BEFORE_AFTER_CASES[0];
 
@@ -271,6 +281,7 @@ export default function Page() {
             <a href="#transformacoes" className="hover:text-[#1C1917] transition-colors">Antes & Depois</a>
             <a href="#videos" className="hover:text-[#1C1917] transition-colors">Vídeos Reais</a>
             <a href="#curvaturas" className="hover:text-[#1C1917] transition-colors">Curvaturas & Cortes</a>
+            <a href="#triagem" className="hover:text-[#1C1917] transition-colors">Triagem VIP</a>
             <a href="#atelie" className="hover:text-[#1C1917] transition-colors">Ateliê Nonoai</a>
           </nav>
 
@@ -278,7 +289,7 @@ export default function Page() {
             href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Gostaria%20de%20agendar%20uma%20avaliação%20VIP."
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-full bg-[#1C1917] text-[#FAF3F0] text-xs font-semibold tracking-wider uppercase hover:bg-[#8F6E32] transition-colors duration-300 shadow-sm"
+            className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-full bg-gradient-to-r from-[#1C1917] to-[#2E2822] hover:from-[#8F6E32] hover:to-[#B87D4B] text-[#FAF3F0] text-xs font-semibold tracking-wider uppercase transition-all duration-300 shadow-sm"
           >
             Avaliação VIP
           </a>
@@ -286,18 +297,18 @@ export default function Page() {
       </header>
 
       {/* 2. HERO CINEMÁTICA FLUIDA A 60FPS (DESOBSTRUÇÃO TOTAL DO ROSTO) */}
-      <section className="relative w-full h-[88vh] sm:h-[94vh] min-h-[600px] bg-[#12100E] overflow-hidden flex flex-col justify-end select-none">
-        <video
-          src="/midias/intro-fernanda.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover object-top filter brightness-[0.92] contrast-[1.04] pointer-events-none transform-gpu"
+      <section className="relative w-full h-[92vh] bg-[#12100E] overflow-hidden flex flex-col justify-end">
+        <video 
+          src="/midias/intro-fernanda.mp4" 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          className="absolute inset-0 w-full h-full object-cover object-center" 
         />
         
-        {/* Gradiente escuro ascendente na base: preserva o rosto da Fernanda 100% limpo no topo/centro e dá contraste perfeito ao texto na base */}
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#FAF6F0] via-black/75 via-45% to-transparent pointer-events-none z-10" />
+        {/* Gradiente escuro sólido cobrindo os últimos 40% da altura */}
+        <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-[#12100E] via-[#12100E]/70 to-transparent pointer-events-none z-10" />
 
         <div className="relative z-20 flex flex-col items-center justify-end text-center px-5 max-w-4xl mx-auto pb-10 sm:pb-14">
           <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#C99065]/40 shadow-xl">
@@ -311,6 +322,14 @@ export default function Page() {
             Sua melhor versão com <span className="italic font-normal text-[#E0CEB5]">Morenas Iluminadas</span> e corte visagista sob medida.
           </h1>
 
+          {/* BADGE DE PROVA SOCIAL OFICIAL DO GOOGLE */}
+          <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black/65 backdrop-blur-md border border-[#D4AF37]/50 shadow-xl">
+            <span className="text-[#D4AF37] text-base leading-none">★</span>
+            <span className="text-white text-xs sm:text-sm font-medium tracking-wide">
+              <strong className="text-[#D4AF37] font-semibold">5.0</strong> no Google (49 avaliações reais) <span className="text-white/60 mx-1">•</span> Atendimento Boutique com Hora Marcada
+            </span>
+          </div>
+
           <p className="font-mono text-[10px] sm:text-xs tracking-[0.25em] uppercase text-[#E0CEB5]/90 mt-4 sm:mt-5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
             FERNANDA GARRONI — ATELIÊ BOUTIQUE • PORTO ALEGRE (AV. NONOAI, 151)
           </p>
@@ -320,14 +339,14 @@ export default function Page() {
               href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Gostaria%20de%20agendar%20uma%20avaliação%20VIP."
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-[48px] w-full sm:w-auto px-8 py-3.5 bg-[#C99065] hover:bg-[#b57f56] text-[#12100E] font-sans font-bold text-xs tracking-widest uppercase rounded-full shadow-2xl transition-all duration-300 inline-flex items-center justify-center gap-2 active:scale-95"
+              className="relative group min-h-[50px] w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#C99065] to-[#B87D4B] hover:from-[#E5C158] hover:to-[#C99065] text-[#12100E] font-sans font-bold text-xs tracking-widest uppercase rounded-full shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:shadow-[0_0_35px_rgba(212,175,55,0.7)] transition-all duration-300 inline-flex items-center justify-center gap-2.5 active:scale-95 animate-pulse hover:animate-none"
             >
               <span>Agendar Avaliação VIP</span>
-              <span>→</span>
+              <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
             </a>
             <a
               href="#triade"
-              className="min-h-[48px] w-full sm:w-auto px-7 py-3.5 bg-black/40 hover:bg-black/60 text-white backdrop-blur-md border border-white/30 font-sans font-semibold text-xs tracking-widest uppercase rounded-full transition-all inline-flex items-center justify-center active:scale-95"
+              className="min-h-[50px] w-full sm:w-auto px-7 py-3.5 bg-black/40 hover:bg-black/60 text-white backdrop-blur-md border border-white/30 font-sans font-semibold text-xs tracking-widest uppercase rounded-full transition-all inline-flex items-center justify-center active:scale-95"
             >
               <span>Explorar a Tríade</span>
             </a>
@@ -387,7 +406,7 @@ export default function Page() {
             <div className="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C5A880]/60 bg-[#12100E] group">
               <div className="relative aspect-[9/13] w-full overflow-hidden bg-neutral-900">
                 <img 
-                  src="/midias/frame1-fernanda.jpg" 
+                  src="/midias/frame1-fernanda.png" 
                   alt="Fernanda Garroni — Cabeleireira & Visagista" 
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 pointer-events-none"
                 />
@@ -653,18 +672,15 @@ export default function Page() {
               </div>
 
               <div className="p-4 bg-white border-t border-[#F0E4DE] mt-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCaseIdx(idx);
-                    const triadeEl = document.getElementById("triade");
-                    if (triadeEl) triadeEl.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#FAF3F0] hover:bg-[#1C1917] hover:text-white text-[#1C1917] border border-[#E8DFD5] font-sans font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer"
+                <a
+                  href={`https://wa.me/5551999999999?text=${encodeURIComponent(`Olá, Fernanda! Vi o resultado "${item.title}" (${item.tag}) no site e quero este tom no meu cabelo. Como funciona a avaliação?`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#1C1917] hover:bg-[#8F6E32] text-white font-sans font-semibold text-xs tracking-wide transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow"
                 >
-                  <span>Comparar no Slider Interativo</span>
-                  <span>⇄</span>
-                </button>
+                  <span>Quero Este Tom no Meu Cabelo</span>
+                  <span>→</span>
+                </a>
               </div>
             </div>
           ))}
@@ -710,12 +726,12 @@ export default function Page() {
                     {item.badge}
                   </div>
 
-                  {/* CONTROLE DE SOM */}
+                  {/* CONTROLE DE SOM (MÍNIMO 44X44PX, ALTA VISIBILIDADE) */}
                   <button
                     type="button"
                     onClick={() => toggleVideoMute(item.id)}
-                    className="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 flex items-center justify-center text-xs transition-colors cursor-pointer"
-                    aria-label="Alternar som do vídeo"
+                    className="absolute top-3 right-3 z-30 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-black/85 hover:bg-[#1C1917] text-white border-2 border-[#D4AF37]/70 shadow-lg flex items-center justify-center text-sm transition-all duration-200 cursor-pointer active:scale-95 hover:scale-105"
+                    aria-label={mutedVideos[item.id] ? "Ativar som do vídeo" : "Desativar som do vídeo"}
                   >
                     {mutedVideos[item.id] ? "🔇" : "🔊"}
                   </button>
@@ -864,6 +880,14 @@ export default function Page() {
       <section className="py-20 sm:py-28 bg-[#FAF6F0] border-b border-[#E8DFD5]">
         <div className="max-w-7xl mx-auto px-5 sm:px-8">
           <div className="max-w-2xl mb-12">
+            {/* BADGE DE PROVA SOCIAL OFICIAL DO GOOGLE */}
+            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white border border-[#D4AF37]/60 shadow-xs">
+              <span className="text-[#D4AF37] text-base leading-none">★</span>
+              <span className="text-xs sm:text-sm font-medium text-[#1C1917] tracking-wide">
+                <strong className="text-[#8F6E32] font-semibold">5.0</strong> no Google (49 avaliações reais) <span className="text-[#736B63] mx-1">•</span> Atendimento Boutique com Hora Marcada
+              </span>
+            </div>
+
             <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#6E501E] block mb-2 font-bold">
               Atendimento Boutique Exclusivo
             </span>
@@ -914,7 +938,123 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 11. LOCALIZAÇÃO E CONTATO DIRETO */}
+      {/* 11. TRIAGEM INTELIGENTE (FILTRO DE ATENDIMENTO VIP) */}
+      <section id="triagem" className="py-24 bg-[#141210] text-[#FAF6F0] relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(#C5A880_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+        
+        <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#D4AF37]/40 shadow-xs mb-3">
+              <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+              <span className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase text-[#E6C99B]">
+                Triagem Rápida Personalizada
+              </span>
+            </div>
+            
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-white leading-tight">
+              Triagem Inteligente de Atendimento
+            </h2>
+            <p className="text-sm text-neutral-300 font-light mt-3 leading-relaxed">
+              Descubra a combinação ideal de procedimento para seu perfil em 3 passos simples antes de iniciar seu atendimento na Sala 205.
+            </p>
+          </div>
+
+          <div className="bg-[#1C1917] rounded-3xl p-6 sm:p-10 border border-white/10 shadow-2xl space-y-8">
+            
+            {/* ETAPA 1 */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-7 h-7 rounded-full bg-[#D4AF37] text-[#12100E] font-bold text-xs flex items-center justify-center">1</span>
+                <h3 className="font-serif text-lg sm:text-xl text-white font-medium">Qual é o seu tipo de curvatura?</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {["Fio Liso", "Ondulado", "Cacheado", "Crespo"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setTriageCurvatura(item)}
+                    className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-200 border cursor-pointer ${
+                      triageCurvatura === item
+                        ? "bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.35)]"
+                        : "bg-white/5 hover:bg-white/10 text-white/80 border-white/10"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ETAPA 2 */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-7 h-7 rounded-full bg-[#D4AF37] text-[#12100E] font-bold text-xs flex items-center justify-center">2</span>
+                <h3 className="font-serif text-lg sm:text-xl text-white font-medium">Qual nuance você deseja?</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {["Marrom Marcante", "Dourado Solar", "Cachos Mel & Caramelo", "Manutenção & Corte"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setTriageNuance(item)}
+                    className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-200 border cursor-pointer ${
+                      triageNuance === item
+                        ? "bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.35)]"
+                        : "bg-white/5 hover:bg-white/10 text-white/80 border-white/10"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ETAPA 3 */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-7 h-7 rounded-full bg-[#D4AF37] text-[#12100E] font-bold text-xs flex items-center justify-center">3</span>
+                <h3 className="font-serif text-lg sm:text-xl text-white font-medium">Seu cabelo já possui química anterior?</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {["Sim", "Cabelo Natural"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setTriageQuimica(item)}
+                    className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-200 border cursor-pointer ${
+                      triageQuimica === item
+                        ? "bg-[#D4AF37] text-[#12100E] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.35)]"
+                        : "bg-white/5 hover:bg-white/10 text-white/80 border-white/10"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* RESUMO DO DIAGNÓSTICO E BOTÃO FINAL */}
+            <div className="pt-6 border-t border-white/10 flex flex-col items-center gap-4 text-center">
+              <div className="text-xs font-mono text-neutral-300">
+                <span className="text-[#D4AF37] font-semibold">Diagnóstico selecionado:</span> {triageCurvatura} • {triageNuance} • Química: {triageQuimica}
+              </div>
+
+              <a
+                href={generateTriageWhatsAppUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto min-h-[52px] px-8 py-3.5 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#C99065] to-[#B87D4B] hover:from-[#E5C158] hover:to-[#C99065] text-[#12100E] font-sans font-bold text-xs tracking-wider uppercase shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all duration-300 inline-flex items-center justify-center gap-2.5 active:scale-95 cursor-pointer"
+              >
+                <span>Gerar Diagnóstico e Enviar para a Fernanda no WhatsApp</span>
+                <span>→</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 12. LOCALIZAÇÃO E CONTATO DIRETO */}
       <section id="atelie" className="py-20 max-w-7xl mx-auto px-5 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
@@ -978,6 +1118,30 @@ export default function Page() {
           </span>
         </div>
       </footer>
+
+      {/* BOTÃO FLUTUANTE DE WHATSAPP COM PULSAÇÃO SUAVE E GRADIENTE REFINADO */}
+      <aside aria-label="Contato direto via WhatsApp" className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <a
+          href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Estou%20no%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20o%20atendimento%20visagista%20na%20Sala%20205."
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Falar com Fernanda Garroni no WhatsApp"
+          className="group relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#25D366] via-[#20BD5A] to-[#128C7E] text-white shadow-[0_8px_30px_rgba(37,211,102,0.45)] hover:shadow-[0_10px_35px_rgba(37,211,102,0.65)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+        >
+          {/* Pulsação suave e halo dourado/esmeralda */}
+          <span className="absolute inset-0 rounded-full bg-[#25D366]/40 animate-ping pointer-events-none" />
+          <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#D4AF37]/50 via-[#25D366]/30 to-[#D4AF37]/50 blur-sm opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          
+          {/* Ícone oficial SVG do WhatsApp */}
+          <svg
+            className="w-7 h-7 sm:w-8 sm:h-8 fill-current relative z-10 drop-shadow-sm"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+          </svg>
+        </a>
+      </aside>
 
     </div>
   );
