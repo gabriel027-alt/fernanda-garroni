@@ -87,7 +87,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#FAF3F0] text-[#1C1917] font-sans selection:bg-[#C5A880]/30 selection:text-[#1C1917]">
       
-      {/* ===================== APRESENTAÇÃO CINEMÁTICA OFICIAL (SCROLL-DRIVEN VIDEO 350vh) ===================== */}
+      {/* ===================== APRESENTAÇÃO INTERATIVA OFICIAL (CANVAS 350vh COM PRELOADER) ===================== */}
       <HeroScrollCanvas />
 
       {/* ===================== CABEÇALHO CONDENSADO COM MONOGRAMA FG (STICKY) ===================== */}

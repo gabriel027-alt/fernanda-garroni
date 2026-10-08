@@ -1,282 +1,319 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { ArrowDown, ChevronDown } from "lucide-react";
 
-interface Chapter {
-  id: number;
-  tag: string;
-  title: string;
-  subtitle: string;
-}
-
-const CHAPTERS: Chapter[] = [
-  {
-    id: 1,
-    tag: "ARQUITETURA FACIAL & VISAGISMO",
-    title: "Fernanda Garroni",
-    subtitle: "Cabeleireira & Visagista em Porto Alegre • Av. Nonoai, 151",
-  },
-  {
-    id: 2,
-    tag: "DIAGNÓSTICO & SEGURANÇA",
-    title: "Consultoria Personalizada",
-    subtitle: "Análise minuciosa de traços faciais e teste de mecha prévio",
-  },
-  {
-    id: 3,
-    tag: "COR CARRO-CHEFE",
-    title: "Tríade de Morenas Iluminadas",
-    subtitle: "Nuances Moça Mousse, avelã e caramelo com transição suave e zero marcas",
-  },
-  {
-    id: 4,
-    tag: "CURVATURAS EM MOVIMENTO",
-    title: "Cortes & Cachos Definidos",
-    subtitle: "Preservação da elasticidade da mola capilar e volume tridimensional",
-  },
-  {
-    id: 5,
-    tag: "RITUAL DE RECUPERAÇÃO",
-    title: "Saúde da Fibra & Lavatório Spa",
-    subtitle: "Tratamentos profundos e atmosfera relaxante na Sala 205 (Av. Nonoai, 151)",
-  },
+const FRAMES = [
+  "/midias/frame1-fernanda.jpg",
+  "/midias/frame2-fernanda.jpg",
+  "/midias/frame3-fernanda.jpg",
+  "/midias/frame4-fernanda.jpg",
+  "/midias/frame5-fernanda.jpg",
 ];
 
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const rafIdRef = useRef<number | null>(null);
 
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-  const [chapterProgresses, setChapterProgresses] = useState<number[]>([0, 0, 0, 0, 0]);
-  const [heroOpacity, setHeroOpacity] = useState(1);
-  const [textTranslateY, setTextTranslateY] = useState(0);
+  // Estados do Loader e da Apresentação
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [textOpacity, setTextOpacity] = useState(1);
 
-  // Rolagem suave e sem trancos direto para a seção principal de conteúdo
-  const handleSkip = useCallback(() => {
-    const target = document.getElementById("conteudo-principal");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
+  // Função para desenhar a imagem no Canvas com proporção matemática cover sem distorção
+  const drawCover = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement | undefined,
+      width: number,
+      height: number,
+      alpha = 1
+    ) => {
+      if (!img || !img.complete || img.naturalWidth === 0) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const canvasRatio = width / height;
+      let drawWidth = width;
+      let drawHeight = height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imgRatio > canvasRatio) {
+        drawWidth = height * imgRatio;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawHeight = width / imgRatio;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      ctx.restore();
+    },
+    []
+  );
+
+  // Renderização contínua a 60fps no Canvas interpolando os frames pelo scroll
+  const render = useCallback(() => {
+    const container = containerRef.current || document.getElementById("hero-scroll-container");
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    const rect = container.getBoundingClientRect();
+    const maxScroll = container.offsetHeight - window.innerHeight;
+    const currentScroll = Math.max(0, -rect.top);
+    const progress = maxScroll > 0 ? Math.min(Math.max(currentScroll / maxScroll, 0), 1) : 0;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Fundo ébano profundo
+    ctx.fillStyle = "#141210";
+    ctx.fillRect(0, 0, width, height);
+
+    // Interpolação suave de frames
+    const frameIndex = progress * (FRAMES.length - 1);
+    const currentIdx = Math.floor(frameIndex);
+    const nextIdx = Math.min(currentIdx + 1, FRAMES.length - 1);
+    const blend = frameIndex - currentIdx;
+
+    const images = imagesRef.current;
+    if (images[currentIdx]) {
+      drawCover(ctx, images[currentIdx], width, height, 1);
+    }
+    if (blend > 0 && images[nextIdx]) {
+      drawCover(ctx, images[nextIdx], width, height, blend);
+    }
+
+    // Fade-out do texto no final do scroll
+    if (progress > 0.7) {
+      setTextOpacity(Math.max(0, 1 - (progress - 0.7) * 3.5));
     } else {
-      const container = containerRef.current || document.getElementById("hero-scroll-container");
-      if (container) {
-        window.scrollTo({
-          top: container.offsetTop + container.offsetHeight,
-          behavior: "smooth",
-        });
-      }
+      setTextOpacity(1);
     }
-  }, []);
+  }, [drawCover]);
 
+  // Redimensionamento com suporte a High-DPI / Retina
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+    }
+    render();
+  }, [render]);
+
+  // Carregamento de imagens e motor de pré-carregamento idêntico ao da Dayane
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    let loadedCount = 0;
+    const images: HTMLImageElement[] = new Array(FRAMES.length);
 
-    // Garante que o vídeo seja estritamente controlado pelo scroll (sem autoplay / sem loop)
-    video.pause();
+    FRAMES.forEach((src, i) => {
+      const img = new Image();
+      img.src = src;
 
-    let targetTime = 0;
-    let isTicking = false;
+      img.onload = () => {
+        loadedCount += 1;
+        const percent = Math.round((loadedCount / FRAMES.length) * 100);
+        setLoadingProgress(percent);
 
-    const updateScroll = () => {
-      const container = containerRef.current || document.getElementById("hero-scroll-container");
-      if (!container) return;
+        // Se for o primeiro frame, renderiza imediatamente para evitar flash
+        if (i === 0) {
+          resizeCanvas();
+        }
 
-      const rect = container.getBoundingClientRect();
-      const maxScroll = container.offsetHeight - window.innerHeight;
-      const currentScroll = Math.max(0, -rect.top);
-      const progress = maxScroll > 0 ? Math.min(Math.max(currentScroll / maxScroll, 0), 1) : 0;
+        if (loadedCount === FRAMES.length) {
+          resizeCanvas();
+          setTimeout(() => {
+            setLoaded(true);
+          }, 300);
+        }
+      };
 
-      if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-        targetTime = progress * video.duration;
-      }
+      img.onerror = () => {
+        loadedCount += 1;
+        const percent = Math.round((loadedCount / FRAMES.length) * 100);
+        setLoadingProgress(percent);
+        if (loadedCount === FRAMES.length) {
+          resizeCanvas();
+          setTimeout(() => {
+            setLoaded(true);
+          }, 300);
+        }
+      };
 
-      if (!isTicking) {
-        isTicking = true;
-        requestAnimationFrame(() => {
-          // Atualização precisa do tempo do vídeo
-          if (video && Math.abs(video.currentTime - targetTime) > 0.03) {
-            video.currentTime = targetTime;
-          }
+      images[i] = img;
+    });
 
-          // Mapeamento dos 5 capítulos sincronizados com o scroll
-          const chapterScrollRange = 0.85; // Capítulos cobrem até 85% do scroll
-          const scaledProgress = Math.min(progress / chapterScrollRange, 1);
-          const rawChapter = scaledProgress * CHAPTERS.length;
-          const activeIdx = Math.min(CHAPTERS.length - 1, Math.floor(rawChapter));
-          setCurrentChapterIndex(activeIdx);
+    imagesRef.current = images;
 
-          // Cálculo individual das barras de progresso superiores dos capítulos
-          const newProgresses = CHAPTERS.map((_, idx) => {
-            if (idx < activeIdx) return 100;
-            if (idx === activeIdx) {
-              const fraction = Math.min(Math.max(rawChapter - idx, 0), 1);
-              return fraction * 100;
-            }
-            return 0;
-          });
-          setChapterProgresses(newProgresses);
-
-          // Fade-out suave no final da rolagem (85% a 98%) para transição com o conteúdo oficial
-          if (progress > 0.85) {
-            const fadeFraction = Math.min((progress - 0.85) / (0.98 - 0.85), 1);
-            setHeroOpacity(Math.max(0, 1 - fadeFraction));
-            setTextTranslateY(fadeFraction * 35);
-          } else {
-            setHeroOpacity(1);
-            setTextTranslateY(0);
-          }
-
-          isTicking = false;
-        });
-      }
-    };
-
-    window.addEventListener("scroll", updateScroll, { passive: true });
-    window.addEventListener("resize", updateScroll, { passive: true });
-    video.addEventListener("loadedmetadata", updateScroll);
-    video.addEventListener("canplay", updateScroll);
-
-    if (video.readyState >= 1) {
-      updateScroll();
-    }
+    window.addEventListener("resize", resizeCanvas, { passive: true });
+    resizeCanvas();
 
     return () => {
-      window.removeEventListener("scroll", updateScroll);
-      window.removeEventListener("resize", updateScroll);
-      video.removeEventListener("loadedmetadata", updateScroll);
-      video.removeEventListener("canplay", updateScroll);
+      window.removeEventListener("resize", resizeCanvas);
     };
-  }, []);
+  }, [resizeCanvas]);
 
-  const activeChapter = CHAPTERS[currentChapterIndex] || CHAPTERS[0];
+  // Listener de Scroll acoplado ao RequestAnimationFrame a 60fps
+  useEffect(() => {
+    const handleScroll = () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      rafIdRef.current = requestAnimationFrame(() => {
+        render();
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [render]);
 
   return (
-    <div
-      id="hero-scroll-container"
-      ref={containerRef}
-      className="relative h-[350vh] w-full bg-[#141210]"
-      aria-label="Apresentação Cinemática Oficial • Fernanda Garroni"
-    >
-      {/* Viewport Fixo durante todo o percurso de Scroll Scrubbing */}
-      <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex flex-col justify-between select-none">
-        
-        {/* ===================== VÍDEO CINEMÁTICO CONTROLADO POR SCROLL ===================== */}
-        <video
-          ref={videoRef}
-          src="/midias/intro-fernanda.mp4"
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none filter brightness-[0.90] contrast-[1.04]"
-        />
-
-        {/* Overlays de Contraste Profundo para Legibilidade Editorial */}
-        <div
-          className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/25 to-black/85 pointer-events-none z-10"
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.50)_0%,transparent_75%)] pointer-events-none z-10"
-          aria-hidden="true"
-        />
-
-        {/* ===================== 1. BARRA SUPERIOR: PROGRESSO DOS CAPÍTULOS & PULAR INTRO ===================== */}
-        <div
-          style={{
-            opacity: heroOpacity,
-            pointerEvents: heroOpacity > 0.05 ? "auto" : "none",
-          }}
-          className="relative z-30 pt-4 sm:pt-6 px-4 sm:px-8 w-full max-w-5xl mx-auto flex flex-col gap-3 transition-opacity duration-150"
-        >
-          {/* 5 Barras de Progresso Horizontais Sincronizadas com o Scroll */}
-          <div className="flex items-center gap-2 w-full">
-            {CHAPTERS.map((chap, idx) => (
-              <div
-                key={chap.id}
-                className="h-1 bg-white/20 rounded-full overflow-hidden flex-1 backdrop-blur-xs"
-              >
-                <div
-                  className="h-full bg-[#C99065] transition-[width] duration-75 ease-out rounded-full"
-                  style={{ width: `${chapterProgresses[idx]}%` }}
-                />
-              </div>
-            ))}
+    <>
+      {/* 2. LOADER INICIAL IDÊNTICO AO DA DAYANE (Z-50) */}
+      <div
+        className={`fixed inset-0 z-50 bg-[#141210] flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-700 ${
+          loaded ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+        aria-hidden={loaded}
+      >
+        <div className="flex flex-col items-center max-w-xs w-full">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-[#C99065]/50 shadow-md bg-[#1C1917] mb-5 flex items-center justify-center shrink-0">
+            <span className="font-serif italic font-bold text-2xl text-[#E0CEB5]">FG</span>
+            <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-[#C99065]/20 pointer-events-none" />
           </div>
-
-          {/* Monograma de Identidade e Botão "Pular Intro" */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2 text-white/90">
-              <span className="font-serif italic font-bold text-xl sm:text-2xl text-[#E0CEB5] drop-shadow-sm">
-                FG
-              </span>
-              <span className="text-[11px] sm:text-xs font-mono tracking-[0.25em] uppercase text-white/75 hidden sm:inline">
-                Ateliê Boutique • Porto Alegre
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="bg-black/50 backdrop-blur-md border border-white/20 text-white/90 hover:text-white hover:bg-black/80 px-4 py-1.5 rounded-full text-xs font-sans font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5 shadow-lg active:scale-95"
-              aria-label="Pular apresentação cinemática e ir para o conteúdo principal"
-            >
-              <span>Pular Intro</span>
-              <ArrowDown className="w-3.5 h-3.5 text-[#E0CEB5]" />
-            </button>
-          </div>
-        </div>
-
-        {/* ===================== 2. CONTEÚDO EDITORIAL DO CAPÍTULO ATIVO ===================== */}
-        <div
-          style={{
-            opacity: heroOpacity,
-            transform: `translateY(${textTranslateY}px)`,
-            pointerEvents: heroOpacity > 0.05 ? "auto" : "none",
-          }}
-          className="relative z-30 px-6 sm:px-10 pb-6 sm:pb-10 w-full max-w-4xl mx-auto flex flex-col items-center text-center transition-opacity duration-150"
-        >
-          {/* Tag de Posicionamento do Capítulo */}
-          <span className="text-[10px] sm:text-xs text-[#E0CEB5] tracking-[0.32em] font-mono uppercase mb-2.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-            {activeChapter.tag}
+          <span className="font-serif italic text-2xl text-[#FAF3F0] mb-4 tracking-wider">
+            Fernanda Garroni • Ateliê Boutique
           </span>
-
-          {/* Título Principal Editorial do Capítulo */}
-          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl text-white font-medium tracking-tight mb-3 leading-[1.12] drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)] [text-wrap:balance]">
-            {activeChapter.title}
-          </h1>
-
-          {/* Subtítulo Narrativo */}
-          <p className="text-white/85 text-xs sm:text-base font-sans font-light max-w-xl leading-relaxed mb-6 sm:mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] [text-wrap:pretty]">
-            {activeChapter.subtitle}
-          </p>
-
-          {/* Indicador Interativo de Scroll (Role para Explorar) */}
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="pointer-events-auto flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:scale-105 active:scale-95"
-            aria-label="Rolar para explorar o espaço da Fernanda Garroni"
-          >
-            <div className="w-5 h-8 rounded-full border border-white/40 flex items-start justify-center p-1 bg-black/20 backdrop-blur-xs">
-              <span className="w-1.5 h-2 rounded-full bg-[#E0CEB5] animate-bounce" />
-            </div>
-
-            <span className="text-[10px] tracking-[0.28em] text-white/70 uppercase font-mono flex items-center gap-1 group-hover:text-white transition-colors">
-              ROLE PARA EXPLORAR O ESPAÇO
-              <ChevronDown className="w-3.5 h-3.5 text-[#E0CEB5]" />
+          <div className="w-48 h-[2px] bg-white/10 overflow-hidden rounded-full mb-3">
+            <div
+              className="h-full bg-[#C99065] transition-all duration-150 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between w-48 text-xs font-mono tracking-widest text-[#E0CEB5]/70">
+            <span>CARREGANDO</span>
+            <span className="text-[#FAF3F0] font-semibold">
+              {String(loadingProgress).padStart(3, "0")}%
             </span>
-          </button>
+          </div>
         </div>
-
-        {/* ===================== 3. NÉVOA INFERIOR DE TRANSIÇÃO SUAVE (Z-20) ===================== */}
-        <div
-          className="pointer-events-none absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20"
-          aria-hidden="true"
-        />
-
       </div>
-    </div>
+
+      {/* 3. IMPLEMENTAÇÃO DO HERO SCROLL COM CANVAS (ESTRUTURA DAYANE) */}
+      <div
+        id="hero-scroll-container"
+        ref={containerRef}
+        className="relative h-[350vh] w-full bg-[#141210]"
+        aria-label="Apresentação Interativa • Fernanda Garroni"
+      >
+        <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex items-center justify-center select-none">
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.96] contrast-[1.02] transform-gpu"
+          />
+
+          {/* Máscaras de Contraste e Profundidade */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50 pointer-events-none z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.45)_0%,transparent_70%)] pointer-events-none z-10" />
+
+          {/* Conteúdo Editorial Central Fixo (z-20) com Fade no final */}
+          <div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 pointer-events-none text-center transition-opacity duration-300"
+            style={{ opacity: textOpacity }}
+          >
+            <div className="max-w-4xl mx-auto flex flex-col items-center">
+              <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 shadow-lg pointer-events-auto">
+                <span className="text-[#C99065]">✨</span>
+                <span className="font-mono text-[10px] sm:text-xs tracking-[0.35em] uppercase text-white/90">
+                  ARQUITETURA FACIAL & ILUMINAÇÃO AUTORAL
+                </span>
+              </div>
+
+              <h1 className="font-light tracking-tighter text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white/95 text-center leading-[1.12] [text-wrap:balance] max-w-3xl drop-shadow-[0_4px_16px_rgba(0,0,0,0.60)]">
+                Sua melhor versão com{" "}
+                <span className="font-serif italic font-normal text-[#E0CEB5] drop-shadow-[0_2px_12px_rgba(201,144,101,0.45)]">
+                  Morenas Iluminadas
+                </span>{" "}
+                e corte visagista sob medida.
+              </h1>
+
+              <p className="font-mono text-xs sm:text-sm tracking-[0.25em] uppercase text-white/80 mt-5 sm:mt-6 drop-shadow-[0_2px_8px_rgba(0,0,0,0.60)]">
+                FERNANDA GARRONI — ATELIÊ BOUTIQUE • PORTO ALEGRE (AV. NONOAI, 151)
+              </p>
+
+              <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5 pointer-events-auto">
+                <a
+                  href="#triagem-inteligente"
+                  className="min-h-[48px] px-8 py-3.5 bg-[#C99065] hover:bg-[#b57f56] text-[#141210] font-sans font-bold text-xs sm:text-sm tracking-wider uppercase rounded-full shadow-2xl transition-all cursor-pointer inline-flex items-center gap-2 active:scale-95"
+                >
+                  <span>Agendar Avaliação VIP</span>
+                  <span>→</span>
+                </a>
+                <a
+                  href="#procedimentos"
+                  className="min-h-[48px] px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/25 font-sans font-semibold text-xs tracking-wider uppercase rounded-full transition-all cursor-pointer active:scale-95"
+                >
+                  <span>Explorar Procedimentos</span>
+                </a>
+              </div>
+
+              {/* Indicador de Swipe */}
+              <div className="mt-8 sm:mt-12 flex flex-col items-center justify-center gap-3 pointer-events-auto select-none">
+                <div className="relative w-10 h-11 sm:h-12 flex items-center justify-center">
+                  <div className="absolute w-[1.5px] h-7 rounded-full bg-gradient-to-t from-transparent via-[#C99065]/35 to-transparent pointer-events-none" />
+                  <div className="text-[#E0CEB5] animate-bounce">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-6 h-6 sm:w-7 sm:h-7 rotate-[-6deg]"
+                    >
+                      <path d="M22 14a8 8 0 0 1-8 8" />
+                      <path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
+                      <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1" />
+                      <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10" />
+                      <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                    </svg>
+                  </div>
+                </div>
+                <span className="font-sans font-bold text-[11px] sm:text-xs tracking-[0.25em] uppercase text-[#E0CEB5]">
+                  DESLIZE PARA BAIXO PARA EXPLORAR
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Máscara de fusão com a próxima seção */}
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 sm:h-56 bg-gradient-to-t from-[#FAF3F0] via-[#FAF3F0]/40 to-transparent z-20" />
+        </div>
+      </div>
+    </>
   );
 }
 
