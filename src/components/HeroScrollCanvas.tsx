@@ -4,136 +4,193 @@ import React, { useRef, useEffect, useState } from "react";
 
 export function HeroScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
 
   // Estados do Loader e da Apresentação
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // 1. ELIMINAR O FLASH DO LOADER E PROGRESSO CONTÍNUO
+  // 1. CARREGAMENTO INICIAL CONTROLADO (SEM SPINNERS NATIVOS E SEM FLICKER)
   useEffect(() => {
-    const video = videoRef.current;
-    let currentProgress = 0;
-    let isFinished = false;
-
-    // Leitura contínua de 0% a 100% sem reiniciar
+    let p = 0;
     const interval = setInterval(() => {
-      if (isFinished) return;
-      currentProgress += Math.floor(Math.random() * 8) + 6;
-      if (currentProgress >= 90) {
-        currentProgress = 90;
+      p += Math.floor(Math.random() * 12) + 8;
+      if (p >= 95) {
+        p = 95;
         clearInterval(interval);
       }
-      setLoadingProgress(currentProgress);
+      setLoadingProgress(p);
     }, 50);
 
     const finishLoading = () => {
-      if (isFinished) return;
-      isFinished = true;
       clearInterval(interval);
       setLoadingProgress(100);
 
-      // Fade-out suave (transition-opacity duration-500 opacity-0 pointer-events-none) e desmontagem definitiva
+      // Fade-out suave de 500ms e desmontagem definitiva do componente
       setTimeout(() => {
-        setLoaded(true);
+        setIsLoaded(true);
         setTimeout(() => {
-          setIsFullyLoaded(true);
+          setIsMounted(false);
         }, 500);
       }, 200);
     };
 
-    if (video) {
-      video.pause();
-      video.setAttribute("webkit-playsinline", "true");
-      video.setAttribute("playsinline", "true");
-
-      if (video.readyState >= 3) {
-        finishLoading();
-      } else {
-        video.addEventListener("canplaythrough", finishLoading, { once: true });
-        video.addEventListener("canplay", finishLoading, { once: true });
-        video.addEventListener("loadeddata", finishLoading, { once: true });
-      }
-    }
-
-    // Fallback de segurança para redes com restrições severas
-    const fallbackTimer = setTimeout(() => {
-      finishLoading();
-    }, 2500);
+    // Fallback de segurança para redes lentas
+    const fallbackTimer = setTimeout(finishLoading, 2200);
 
     return () => {
       clearInterval(interval);
       clearTimeout(fallbackTimer);
-      if (video) {
-        video.removeEventListener("canplaythrough", finishLoading);
-        video.removeEventListener("canplay", finishLoading);
-        video.removeEventListener("loadeddata", finishLoading);
-      }
     };
   }, []);
 
-  // 2. RESOLVER O ENGASGO DO VÍDEO (INTERPOLAÇÃO LERP SUAVE A 60FPS)
+  // 2. ARQUITETURA DA HERO: CANVAS 2D COM BUFFER SUAVE A 60 FPS
   useEffect(() => {
-    let targetTime = 0;
-    let currentTime = 0;
-    let rafId: number;
+    // Cria elemento de vídeo oculto em memória para decodificação suave e nativa por hardware
+    const video = document.createElement("video");
+    video.src = "/midias/intro-fernanda.mp4";
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("webkit-playsinline", "true");
+    video.setAttribute("playsinline", "true");
+    video.autoplay = true;
+    video.loop = true;
+    video.preload = "auto";
+    video.style.display = "none";
+    document.body.appendChild(video);
+    videoRef.current = video;
 
-    const updateTarget = () => {
-      const container = document.getElementById("hero-scroll-container");
-      const video = videoRef.current;
-      if (!container || !video || !video.duration) return;
+    const playVideo = () => {
+      const promise = video.play();
+      if (promise !== undefined) {
+        promise.catch(() => {
+          video.muted = true;
+          video.play().catch(() => {});
+        });
+      }
+    };
+
+    playVideo();
+
+    // Gestos de interação de fallback caso a política de autoplay do browser exija
+    const handleUserInteraction = () => {
+      if (video.paused) {
+        playVideo();
+      }
+    };
+    window.addEventListener("touchstart", handleUserInteraction, { once: true, passive: true });
+    window.addEventListener("click", handleUserInteraction, { once: true, passive: true });
+
+    // Referência reativa para o progresso de rolagem
+    let progressRef = 0;
+
+    const updateScrollMetrics = () => {
+      const container = containerRef.current || document.getElementById("hero-scroll-container");
+      if (!container) return;
 
       const rect = container.getBoundingClientRect();
       const maxScroll = container.offsetHeight - window.innerHeight;
       if (maxScroll <= 0) return;
 
       const progress = Math.min(Math.max(-rect.top / maxScroll, 0), 1);
-      targetTime = progress * video.duration;
+      progressRef = progress;
 
-      // Fade out seguro do texto
-      if (progress > 0.65) {
-        setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 4));
-      } else {
+      // Controle estrito de fade-out do texto:
+      // - De 0 a 60%: opacity = 1
+      // - De 60% a 85%: fade progressivo até 0
+      // - Acima de 85%: opacity = 0
+      if (progress <= 0.60) {
         setTextOpacity(1);
+      } else if (progress <= 0.85) {
+        const fade = 1 - (progress - 0.60) / (0.85 - 0.60);
+        setTextOpacity(Math.max(0, fade));
+      } else {
+        setTextOpacity(0);
       }
     };
 
+    window.addEventListener("scroll", updateScrollMetrics, { passive: true });
+    window.addEventListener("resize", updateScrollMetrics, { passive: true });
+    updateScrollMetrics();
+
+    // Redimensionamento matemático do Canvas com suporte a Retina / High-DPI
+    const resizeCanvas = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
+    };
+
+    window.addEventListener("resize", resizeCanvas, { passive: true });
+    resizeCanvas();
+
+    // Loop contínuo a 60 FPS desenhando o vídeo em tempo real no Canvas (drawCover fullscreen)
     const renderLoop = () => {
-      const video = videoRef.current;
-      if (video && video.duration) {
-        // Interpolação LERP suave (fator 0.15)
-        currentTime += (targetTime - currentTime) * 0.15;
-        if (Math.abs(video.currentTime - currentTime) > 0.015) {
-          video.currentTime = currentTime;
+      const canvas = canvasRef.current;
+      const v = videoRef.current;
+
+      if (canvas && v && v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) {
+        const ctx = canvas.getContext("2d", { alpha: false });
+        if (ctx) {
+          const w = canvas.width;
+          const h = canvas.height;
+          const imgRatio = v.videoWidth / v.videoHeight;
+          const screenRatio = w / h;
+
+          let renderW = w;
+          let renderH = h;
+          let x = 0;
+          let y = 0;
+
+          // Cálculo Cover exato sem faixas pretas
+          if (screenRatio > imgRatio) {
+            renderH = w / imgRatio;
+            y = (h - renderH) / 2;
+          } else {
+            renderW = h * imgRatio;
+            x = (w - renderW) / 2;
+          }
+
+          // Leve efeito de escala e paralaxe da cena acoplado ao scroll
+          const scale = 1 + progressRef * 0.08;
+
+          ctx.save();
+          if (scale !== 1) {
+            ctx.translate(w / 2, h / 2);
+            ctx.scale(scale, scale);
+            ctx.translate(-w / 2, -h / 2);
+          }
+          ctx.drawImage(v, x, y, renderW, renderH);
+          ctx.restore();
         }
       }
-      rafId = requestAnimationFrame(renderLoop);
+
+      rafIdRef.current = requestAnimationFrame(renderLoop);
     };
 
-    window.addEventListener("scroll", updateTarget, { passive: true });
-    window.addEventListener("resize", updateTarget, { passive: true });
-    rafId = requestAnimationFrame(renderLoop);
-
-    const onLoadedMetadata = () => {
-      updateTarget();
-    };
-    const video = videoRef.current;
-    if (video) {
-      video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
-      if (video.duration) {
-        updateTarget();
-      }
-    }
+    rafIdRef.current = requestAnimationFrame(renderLoop);
 
     return () => {
-      window.removeEventListener("scroll", updateTarget);
-      window.removeEventListener("resize", updateTarget);
-      if (video) {
-        video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      window.removeEventListener("scroll", updateScrollMetrics);
+      window.removeEventListener("resize", updateScrollMetrics);
+      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("touchstart", handleUserInteraction);
+      window.removeEventListener("click", handleUserInteraction);
+
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
       }
-      cancelAnimationFrame(rafId);
+
+      if (video && video.parentNode) {
+        video.pause();
+        video.parentNode.removeChild(video);
+      }
     };
   }, []);
 
@@ -141,14 +198,14 @@ export function HeroScrollCanvas() {
 
   return (
     <>
-      {/* 1. LOADER INICIAL COM A LOGO OFICIAL (Z-50) - DESMONTAGEM DEFINITIVA */}
-      {!isFullyLoaded && (
+      {/* 1. LOADER INICIAL COM A LOGO OFICIAL (Z-50) - DESMONTAGEM TOTAL */}
+      {isMounted && (
         <div
           className={`fixed inset-0 z-50 bg-[#141210] w-screen h-screen flex flex-col items-center justify-center p-6 text-center select-none transition-opacity duration-500 ${
-            loaded ? "opacity-0 pointer-events-none" : "opacity-100"
+            isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
-          style={{ display: isFullyLoaded ? "none" : "flex" }}
-          aria-hidden={loaded}
+          style={{ display: !isMounted ? "none" : "flex" }}
+          aria-hidden={isLoaded}
         >
           <div className="flex flex-col items-center max-w-xs w-full">
             {/* Logo Oficial Centralizada */}
@@ -176,29 +233,24 @@ export function HeroScrollCanvas() {
         </div>
       )}
 
-      {/* 2. HERO SCROLL COM VÍDEO OFICIAL (450vh) */}
+      {/* 2. HERO SCROLL COM CANVAS 2D E BUFFER SUAVE A 60 FPS */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
-        className="relative h-[450vh] w-full bg-[#141210]"
+        className="relative h-[250vh] sm:h-[300vh] w-full bg-[#141210]"
         aria-label="Apresentação Interativa • Fernanda Garroni"
       >
         <div className="sticky top-0 h-screen h-[100dvh] w-full overflow-hidden flex items-center justify-center select-none">
-          <video
-            ref={videoRef}
-            src="/midias/intro-fernanda.mp4"
-            muted
-            playsInline
-            {...({ "webkit-playsinline": "true" } as any)}
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none filter brightness-[0.92] contrast-[1.03]"
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none filter brightness-[0.94] contrast-[1.03]"
           />
 
           {/* Máscaras de Contraste e Profundidade */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50 pointer-events-none z-10" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.45)_0%,transparent_70%)] pointer-events-none z-10" />
 
-          {/* 3. DESAPARECIMENTO TOTAL DO TEXTO NO FINAL DO SCROLL */}
+          {/* 3. OVERLAY TEXTUAL EDITORIAL COM FADE-OUT SUAVE */}
           <div
             className={`absolute inset-0 z-20 flex flex-col items-center justify-center px-4 sm:px-6 text-center transition-opacity duration-150 ${
               isHidden ? "opacity-0 pointer-events-none hidden invisible" : ""
