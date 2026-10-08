@@ -6,7 +6,6 @@ import LocationAndFooter from "@/components/LocationAndFooter";
 import StickyConversionBar from "@/components/StickyConversionBar";
 import WhatsAppTriageDrawer, { ServiceCategory } from "@/components/WhatsAppTriageDrawer";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
-import CinematicIntro from "@/components/CinematicIntro";
 import HeroScrollCanvas from "@/components/HeroScrollCanvas";
 import { 
   Sparkles, 
@@ -88,17 +87,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#FAF3F0] text-[#1C1917] font-sans selection:bg-[#C5A880]/30 selection:text-[#1C1917]">
       
-      {/* ===================== 0. INTRO CINEMÁTICA DE STORIES (ESTILO DAYANE) ===================== */}
-      <CinematicIntro />
-
-      {/* ===================== CONTROLE OFICIAL SCROLL-DRIVEN VIDEO (350vh) ===================== */}
-      <HeroScrollCanvas
-        onOpenTriage={handleOpenGeneralTriage}
-        onExplore={() => {
-          const target = document.getElementById("triade") || document.getElementById("procedimentos");
-          target?.scrollIntoView({ behavior: "smooth" });
-        }}
-      />
+      {/* ===================== APRESENTAÇÃO CINEMÁTICA OFICIAL (SCROLL-DRIVEN VIDEO 350vh) ===================== */}
+      <HeroScrollCanvas />
 
       {/* ===================== CABEÇALHO CONDENSADO COM MONOGRAMA FG (STICKY) ===================== */}
       <Header onOpenTriage={handleOpenGeneralTriage} />
