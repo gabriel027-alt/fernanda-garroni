@@ -232,6 +232,17 @@ export default function Page() {
   });
   const isDragging = useRef(false);
 
+  // CONTROLE DE ÁUDIO DO LAVATÓRIO SPA
+  const lavatorioVideoRef = useRef<HTMLVideoElement>(null);
+  const [lavatorioMuted, setLavatorioMuted] = useState(true);
+
+  const toggleLavatorioMute = () => {
+    if (lavatorioVideoRef.current) {
+      lavatorioVideoRef.current.muted = !lavatorioMuted;
+    }
+    setLavatorioMuted((prev) => !prev);
+  };
+
   // ESTADOS DA TRIAGEM INTELIGENTE
   const [triageCurvatura, setTriageCurvatura] = useState<string>("Fio Liso");
   const [triageNuance, setTriageNuance] = useState<string>("Marrom Marcante");
@@ -281,14 +292,12 @@ export default function Page() {
             <a href="#transformacoes" className="hover:text-[#1C1917] transition-colors">Antes & Depois</a>
             <a href="#videos" className="hover:text-[#1C1917] transition-colors">Vídeos Reais</a>
             <a href="#curvaturas" className="hover:text-[#1C1917] transition-colors">Curvaturas & Cortes</a>
-            <a href="#triagem" className="hover:text-[#1C1917] transition-colors">Triagem VIP</a>
+            <a href="#triagem-inteligente" className="hover:text-[#1C1917] transition-colors">Triagem VIP</a>
             <a href="#atelie" className="hover:text-[#1C1917] transition-colors">Ateliê Nonoai</a>
           </nav>
 
           <a 
-            href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Gostaria%20de%20agendar%20uma%20avaliação%20VIP."
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#triagem-inteligente"
             className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-full bg-gradient-to-r from-[#1C1917] to-[#2E2822] hover:from-[#8F6E32] hover:to-[#B87D4B] text-[#FAF3F0] text-xs font-semibold tracking-wider uppercase transition-all duration-300 shadow-sm"
           >
             Avaliação VIP
@@ -312,7 +321,7 @@ export default function Page() {
 
         <div className="relative z-20 flex flex-col items-center justify-end text-center px-5 max-w-4xl mx-auto pb-10 sm:pb-14">
           <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#C99065]/40 shadow-xl">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C99065] animate-ping" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C99065]" />
             <span className="font-mono text-[9px] sm:text-[11px] tracking-[0.28em] uppercase text-white/95">
               ARQUITETURA FACIAL & ILUMINAÇÃO AUTORAL
             </span>
@@ -336,10 +345,8 @@ export default function Page() {
 
           <div className="mt-6 sm:mt-7 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
             <a
-              href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Gostaria%20de%20agendar%20uma%20avaliação%20VIP."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative group min-h-[50px] w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#C99065] to-[#B87D4B] hover:from-[#E5C158] hover:to-[#C99065] text-[#12100E] font-sans font-bold text-xs tracking-widest uppercase rounded-full shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:shadow-[0_0_35px_rgba(212,175,55,0.7)] transition-all duration-300 inline-flex items-center justify-center gap-2.5 active:scale-95 animate-pulse hover:animate-none"
+              href="#triagem-inteligente"
+              className="relative group min-h-[50px] w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#C99065] to-[#B87D4B] hover:from-[#E5C158] hover:to-[#C99065] text-[#12100E] font-sans font-bold text-xs tracking-widest uppercase rounded-full shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:shadow-[0_0_35px_rgba(212,175,55,0.7)] transition-all duration-300 inline-flex items-center justify-center gap-2.5 active:scale-95"
             >
               <span>Agendar Avaliação VIP</span>
               <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
@@ -360,7 +367,7 @@ export default function Page() {
           
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E8DFD5] shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-[#8F6E32] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#8F6E32]" />
               <span className="text-xs font-mono font-bold tracking-[0.16em] uppercase text-[#6E501E]">
                 Visagismo & Saúde da Fibra
               </span>
@@ -856,13 +863,28 @@ export default function Page() {
             <div className="lg:col-span-6 flex justify-center">
               <div className="relative w-full max-w-md rounded-2xl overflow-hidden shadow-xl border border-[#C5A880]/40 bg-[#12100E] aspect-[9/13]">
                 <video 
+                  ref={lavatorioVideoRef}
                   src="/midias/video-fernanda-cronograma-capilar-lavatorio.mp4" 
                   autoPlay 
                   loop 
-                  muted 
+                  muted={lavatorioMuted}
                   playsInline 
                   className="w-full h-full object-cover" 
                 />
+                
+                {/* BOTÃO VISÍVEL DE CONTROLE DE ÁUDIO NO CANTO SUPERIOR DIREITO */}
+                <button
+                  type="button"
+                  onClick={toggleLavatorioMute}
+                  className="absolute top-4 right-4 z-30 min-w-[44px] min-h-[44px] px-3.5 py-2 rounded-full bg-black/85 hover:bg-[#1C1917] text-white border-2 border-[#D4AF37]/80 shadow-lg flex items-center justify-center gap-1.5 text-xs font-mono font-medium transition-all duration-200 cursor-pointer active:scale-95"
+                  aria-label={lavatorioMuted ? "Ativar som do vídeo do lavatório" : "Desativar som do vídeo do lavatório"}
+                >
+                  <span className="text-sm">{lavatorioMuted ? "🔇" : "🔊"}</span>
+                  <span className="uppercase tracking-wider text-[10px]">
+                    {lavatorioMuted ? "Sem Som" : "Com Som"}
+                  </span>
+                </button>
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 <div className="absolute bottom-5 left-5 right-5 text-white">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-[#E6C99B] block mb-1">Ritual na Sala 205</span>
@@ -939,13 +961,13 @@ export default function Page() {
       </section>
 
       {/* 11. TRIAGEM INTELIGENTE (FILTRO DE ATENDIMENTO VIP) */}
-      <section id="triagem" className="py-24 bg-[#141210] text-[#FAF6F0] relative overflow-hidden">
+      <section id="triagem-inteligente" className="scroll-mt-20 py-24 bg-[#141210] text-[#FAF6F0] relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#C5A880_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
         
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#D4AF37]/40 shadow-xs mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#D4AF37]" />
               <span className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase text-[#E6C99B]">
                 Triagem Rápida Personalizada
               </span>
@@ -1119,17 +1141,13 @@ export default function Page() {
         </div>
       </footer>
 
-      {/* BOTÃO FLUTUANTE DE WHATSAPP COM PULSAÇÃO SUAVE E GRADIENTE REFINADO */}
-      <aside aria-label="Contato direto via WhatsApp" className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      {/* BOTÃO FLUTUANTE DE TRIAGEM RÁPIDA VIP */}
+      <aside aria-label="Ir para a Triagem Inteligente" className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
         <a
-          href="https://wa.me/5551999999999?text=Olá,%20Fernanda!%20Estou%20no%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20o%20atendimento%20visagista%20na%20Sala%20205."
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Falar com Fernanda Garroni no WhatsApp"
+          href="#triagem-inteligente"
+          aria-label="Iniciar Triagem Inteligente VIP"
           className="group relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#25D366] via-[#20BD5A] to-[#128C7E] text-white shadow-[0_8px_30px_rgba(37,211,102,0.45)] hover:shadow-[0_10px_35px_rgba(37,211,102,0.65)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
         >
-          {/* Pulsação suave e halo dourado/esmeralda */}
-          <span className="absolute inset-0 rounded-full bg-[#25D366]/40 animate-ping pointer-events-none" />
           <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#D4AF37]/50 via-[#25D366]/30 to-[#D4AF37]/50 blur-sm opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none" />
           
           {/* Ícone oficial SVG do WhatsApp */}
