@@ -2,10 +2,10 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
-const TOTAL_FRAMES = 40;
-const FRAMES = Array.from(
-  { length: TOTAL_FRAMES },
-  (_, i) => `/midias/hero-frames/frame-${String(i + 1).padStart(3, "0")}.jpg`
+const FRAME_COUNT = 45;
+const framePaths = Array.from(
+  { length: FRAME_COUNT },
+  (_, i) => `/midias/hero-seq/f-${String(i + 1).padStart(3, "0")}.jpg`
 );
 
 export function HeroScrollCanvas() {
@@ -20,15 +20,18 @@ export function HeroScrollCanvas() {
   const [isMounted, setIsMounted] = useState(true);
   const [textOpacity, setTextOpacity] = useState(1);
 
-  // Função matemática para renderização COVER sem distorção e sem barras pretas
+  // Função matemática para renderização COVER com opacidade alpha (Crossfade suave)
   const drawCover = useCallback(
     (
       ctx: CanvasRenderingContext2D,
       img: HTMLImageElement | undefined,
       w: number,
-      h: number
+      h: number,
+      alpha = 1
     ) => {
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
 
       const imgRatio = img.naturalWidth / img.naturalHeight;
       const screenRatio = w / h;
@@ -47,11 +50,12 @@ export function HeroScrollCanvas() {
       }
 
       ctx.drawImage(img, x, y, renderW, renderH);
+      ctx.restore();
     },
     []
   );
 
-  // Renderização instantânea do fotograma no Canvas sincronizado com o scroll
+  // Renderização 60 FPS com interpolação fracionária Crossfade entre fotogramas
   const render = useCallback(() => {
     const container = containerRef.current || document.getElementById("hero-scroll-container");
     const canvas = canvasRef.current;
@@ -64,25 +68,33 @@ export function HeroScrollCanvas() {
     const maxScroll = container.offsetHeight - window.innerHeight;
     const progress = maxScroll > 0 ? Math.min(Math.max(-rect.top / maxScroll, 0), 1) : 0;
 
-    const frameIndex = Math.min(
-      TOTAL_FRAMES - 1,
-      Math.floor(progress * TOTAL_FRAMES)
-    );
+    // Fundo base escuro #141210
+    ctx.fillStyle = "#141210";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Cálculo fracionário para crossfade suave entre frames
+    const rawIndex = progress * (FRAME_COUNT - 1);
+    const currentIndex = Math.floor(rawIndex);
+    const nextIndex = Math.min(currentIndex + 1, FRAME_COUNT - 1);
+    const blend = rawIndex - currentIndex;
 
     const images = imagesRef.current;
-    if (images[frameIndex]) {
-      drawCover(ctx, images[frameIndex], canvas.width, canvas.height);
+    if (images[currentIndex]) {
+      drawCover(ctx, images[currentIndex], canvas.width, canvas.height, 1);
+    }
+    if (blend > 0 && images[nextIndex]) {
+      drawCover(ctx, images[nextIndex], canvas.width, canvas.height, blend);
     }
 
-    // Fade-out progressivo do texto
+    // Fade-out rigoroso do texto central
     if (progress > 0.65) {
-      setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 3.5));
+      setTextOpacity(Math.max(0, 1 - (progress - 0.65) * 4));
     } else {
       setTextOpacity(1);
     }
   }, [drawCover]);
 
-  // Redimensionamento de alta definição (High-DPI / Retina)
+  // Redimensionamento estrito com Retina / High-DPI
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -94,25 +106,25 @@ export function HeroScrollCanvas() {
     render();
   }, [render]);
 
-  // Pré-carregamento dos 40 fotogramas na memória RAM
+  // Pré-carregamento dos 45 fotogramas na memória RAM
   useEffect(() => {
     let loadedCount = 0;
-    const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
+    const images: HTMLImageElement[] = new Array(FRAME_COUNT);
 
-    FRAMES.forEach((src, idx) => {
+    framePaths.forEach((src, idx) => {
       const img = new Image();
       img.src = src;
 
       img.onload = () => {
         loadedCount++;
-        const pct = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+        const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
         setLoadingProgress(pct);
 
         if (idx === 0) {
           resizeCanvas();
         }
 
-        if (loadedCount === TOTAL_FRAMES) {
+        if (loadedCount === FRAME_COUNT) {
           resizeCanvas();
           setTimeout(() => {
             setIsLoaded(true);
@@ -125,10 +137,10 @@ export function HeroScrollCanvas() {
 
       img.onerror = () => {
         loadedCount++;
-        const pct = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+        const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
         setLoadingProgress(pct);
 
-        if (loadedCount === TOTAL_FRAMES) {
+        if (loadedCount === FRAME_COUNT) {
           resizeCanvas();
           setTimeout(() => {
             setIsLoaded(true);
@@ -213,7 +225,7 @@ export function HeroScrollCanvas() {
         </div>
       )}
 
-      {/* 2. HERO SCROLL COM CANVAS 2D DE FOTOGRAMAS (60 FPS NATIVO) */}
+      {/* 2. HERO SCROLL COM CANVAS 2D DE FOTOGRAMAS (INTERPOLAÇÃO CROSSFADE) */}
       <div
         id="hero-scroll-container"
         ref={containerRef}
