@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fernanda Garroni — Cabeleireira & Visagista | Morenas Iluminadas & Curvaturas em Porto Alegre",
+  title: "Fernanda Garroni — Cabeleireira & Visagista | Especialista em Morenas Iluminadas & Curvaturas em Porto Alegre",
   description: "Especialista em Morenas Iluminadas & Cabelos com Curvaturas em Porto Alegre (RS). Tríade de Morenas Iluminadas, Cortes Visagistas e Cronograma Capilar na Av. Nonoai, nº 151, Sala 205.",
   keywords: [
     "Fernanda Garroni",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Fernanda Garroni" }],
   openGraph: {
-    title: "Fernanda Garroni — Cabeleireira & Visagista • Porto Alegre (RS)",
+    title: "Fernanda Garroni — Cabeleireira & Visagista | Especialista em Morenas Iluminadas & Curvaturas em Porto Alegre",
     description: "Especialista em Morenas Iluminadas & Cabelos com Curvaturas. Agende sua avaliação personalizada na Av. Nonoai, 151, Sala 205.",
     locale: "pt_BR",
     type: "website",

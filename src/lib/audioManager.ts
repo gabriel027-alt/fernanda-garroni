@@ -1,6 +1,6 @@
 // ============================================================================
 // GESTÃO GLOBAL CENTRALIZADA DE INSTÂNCIA ÚNICA DE ÁUDIO & CONTROLE DE SCROLL
-// Ateliê Dayane Lima — Sistema de Áudio Inteligente
+// Ateliê Fernanda Garroni — Sistema de Áudio Inteligente
 // ============================================================================
 
 let globalActiveMediaElement: HTMLMediaElement | null = null;

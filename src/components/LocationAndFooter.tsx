@@ -21,8 +21,8 @@ interface LocationAndFooterProps {
 }
 
 export function LocationAndFooter({ onOpenTriage }: LocationAndFooterProps) {
-  const googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=Av.+Nonoai,+151,+Sala+205+-+Porto+Alegre+-+RS";
-  const wazeUrl = "https://waze.com/ul?q=Av.%20Nonoai,%20151%20Porto%20Alegre";
+  const googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=Av.+Nonoai,+151,+Porto+Alegre+-+RS";
+  const wazeUrl = "https://waze.com/ul?q=Av.+Nonoai,+151,+Porto+Alegre";
 
   return (
     <>

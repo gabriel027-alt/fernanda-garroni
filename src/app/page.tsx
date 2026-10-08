@@ -191,15 +191,15 @@ export default function HomePage() {
 
               {/* Coluna Visual: Imagem Editorial de Autoridade da Especialista Fernanda Garroni */}
               <div className="lg:col-span-5 flex justify-center">
-                <div className="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C5A880]/60 bg-[#1C1917] group">
+                <div className="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-[#C5A880]/40 bg-[#1C1917] group">
                   
                   {/* Fotografia Editorial de Alta Resolução da Especialista */}
-                  <div className="relative aspect-[9/13] w-full overflow-hidden bg-neutral-900">
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-900">
                     <img
                       src="/midias/frame1-fernanda.jpg"
                       alt="Fernanda Garroni — Cabeleireira & Visagista em Porto Alegre"
                       loading="eager"
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 pointer-events-none"
                     />
 
                     {/* Gradiente Inferior para legibilidade */}
@@ -982,115 +982,101 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ===================== 7. SEÇÃO DE DEPOIMENTOS: FOCO NOS RESULTADOS DA FERNANDA ===================== */}
+        {/* ===================== 7. SEÇÃO DE AUTORIDADE & ATENDIMENTO EXCLUSIVO ===================== */}
         <section 
-          id="depoimentos"
-          aria-labelledby="depoimentos-heading"
+          id="atendimento-exclusivo"
+          aria-labelledby="autoridade-heading"
           className="py-20 sm:py-28 bg-[#FAF3F0] border-b border-[#E8D0C8] scroll-mt-20 sm:scroll-mt-24"
         >
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             
             <div className="max-w-3xl mx-auto text-center space-y-3 mb-14 sm:mb-18">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#6E501E] bg-white px-3.5 py-1.5 rounded-full border border-[#E8D0C8]">
-                Depoimentos & Experiência
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#6E501E] bg-white px-3.5 py-1.5 rounded-full border border-[#E8D0C8] shadow-2xs">
+                EXCLUSIVIDADE • ATELIÊ BOUTIQUE
               </span>
               <h2 
-                id="depoimentos-heading"
+                id="autoridade-heading"
                 className="font-serif text-3xl sm:text-5xl font-bold text-[#1C1917] tracking-tight [text-wrap:balance]"
               >
-                A Palavra de Quem Confia na Fernanda
+                Atendimento Individual e Personalizado na Sala 205
               </h2>
               <p className="text-base sm:text-lg text-[#44403C] font-sans leading-relaxed [text-wrap:pretty]">
-                A satisfação de clientes em Porto Alegre que encontraram a cor dos sonhos sem abrir mão da saúde e da curvatura dos seus cabelos.
+                Um ambiente acolhedor, privativo e com hora marcada na Av. Nonoai, 151, onde cada mecha e formato são desenhados exclusivamente para a sua harmonia visual.
               </p>
             </div>
 
-            {/* Grid de Avaliações Reais focadas nos Serviços da Fernanda */}
+            {/* Grid dos 3 Pilares Fundamentais de Autoridade */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
               
-              {/* Avaliação 1: Curvatura & Cachos Mel */}
-              <div className="p-6 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-amber-500 text-sm">
-                      ★★★★★
-                    </div>
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#6E501E] bg-[#FAF3F0] px-2 py-0.5 rounded-md">
-                      Cachos Mel & Curvaturas
-                    </span>
+              {/* Pilar 1: Diagnóstico Visagista Prévio */}
+              <div className="p-8 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs hover:border-[#C5A880]/60 transition-all duration-300 flex flex-col justify-between group">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#FAF3F0] border border-[#E8D0C8] flex items-center justify-center text-[#8F6E32] group-hover:scale-105 transition-transform">
+                    <Sparkles className="w-6 h-6 text-[#C99065]" />
                   </div>
-                  <p className="text-sm text-[#44403C] font-sans leading-relaxed italic">
-                    “Eu morria de medo de descolorir meus cachos e perder a definição. A Fernanda fez um teste de mecha muito sério, explicou tudo e o resultado foi surreal: a cor ficou linda em tons de mel e os meus cachos continuam super definidos e hidratados!”
+                  <h3 className="font-serif font-bold text-xl text-[#1C1917]">
+                    Diagnóstico Visagista Prévio
+                  </h3>
+                  <p className="text-sm text-[#44403C] font-sans leading-relaxed">
+                    Análise aprofundada da sua arquitetura facial, subtom de pele, rotina e estilo de vida. A cor e o corte são concebidos para valorizar quem você é por completo.
                   </p>
                 </div>
-                <div className="pt-3 border-t border-[#F0E4DE] flex items-center justify-between text-xs font-sans">
-                  <div>
-                    <strong className="text-[#1C1917] block font-bold">Camila Silveira</strong>
-                    <span className="text-[#8F6E32]">Porto Alegre / RS</span>
-                  </div>
-                  <span className="text-[#6E501E] font-medium text-[11px]">Cliente Recorrente</span>
+                <div className="pt-5 mt-6 border-t border-[#F0E4DE] flex items-center gap-2 text-xs font-sans font-bold text-[#6E501E] uppercase tracking-wider">
+                  <CheckCircle2 className="w-4 h-4 text-[#8F6E32]" />
+                  <span>Personalização Total</span>
                 </div>
               </div>
 
-              {/* Avaliação 2: Morena Iluminada no Fio Liso */}
-              <div className="p-6 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-amber-500 text-sm">
-                      ★★★★★
-                    </div>
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#6E501E] bg-[#FAF3F0] px-2 py-0.5 rounded-md">
-                      Dourado Solar no Fio Liso
-                    </span>
+              {/* Pilar 2: Teste de Mecha Obrigatório */}
+              <div className="p-8 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs hover:border-[#C5A880]/60 transition-all duration-300 flex flex-col justify-between group">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#FAF3F0] border border-[#E8D0C8] flex items-center justify-center text-[#8F6E32] group-hover:scale-105 transition-transform">
+                    <ShieldCheck className="w-6 h-6 text-[#C99065]" />
                   </div>
-                  <p className="text-sm text-[#44403C] font-sans leading-relaxed italic">
-                    “A técnica Moça Mousse no fio liso não marca nada! O cabelo cresce e não fica aquela raiz pesada dividida. O atendimento da Fernanda na Sala 205 é calmo, com café gostoso e atenção exclusiva. Vale cada minuto.”
+                  <h3 className="font-serif font-bold text-xl text-[#1C1917]">
+                    Teste de Mecha Obrigatório
+                  </h3>
+                  <p className="text-sm text-[#44403C] font-sans leading-relaxed">
+                    Compromisso inegociável com a integridade capilar. Avaliamos a elasticidade, força e compatibilidade química da fibra antes de qualquer processo de iluminação.
                   </p>
                 </div>
-                <div className="pt-3 border-t border-[#F0E4DE] flex items-center justify-between text-xs font-sans">
-                  <div>
-                    <strong className="text-[#1C1917] block font-bold">Juliana Dornelles</strong>
-                    <span className="text-[#8F6E32]">Nonoai • Porto Alegre</span>
-                  </div>
-                  <span className="text-[#6E501E] font-medium text-[11px]">Avaliação Google 5.0</span>
+                <div className="pt-5 mt-6 border-t border-[#F0E4DE] flex items-center gap-2 text-xs font-sans font-bold text-[#6E501E] uppercase tracking-wider">
+                  <CheckCircle2 className="w-4 h-4 text-[#8F6E32]" />
+                  <span>Segurança da Fibra</span>
                 </div>
               </div>
 
-              {/* Avaliação 3: Corte Visagista & Cronograma */}
-              <div className="p-6 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-amber-500 text-sm">
-                      ★★★★★
-                    </div>
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#6E501E] bg-[#FAF3F0] px-2 py-0.5 rounded-md">
-                      Corte Visagista & Cronograma
-                    </span>
+              {/* Pilar 3: Ambiente Privativo com Hora Marcada */}
+              <div className="p-8 rounded-2xl bg-white border border-[#E8D0C8] shadow-xs hover:border-[#C5A880]/60 transition-all duration-300 flex flex-col justify-between group">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#FAF3F0] border border-[#E8D0C8] flex items-center justify-center text-[#8F6E32] group-hover:scale-105 transition-transform">
+                    <Calendar className="w-6 h-6 text-[#C99065]" />
                   </div>
-                  <p className="text-sm text-[#44403C] font-sans leading-relaxed italic">
-                    “Fiz o corte a seco com ela e o cronograma capilar de recuperação. Meu cabelo estava opaco e pesado; saí com uma leveza inacreditável no rosto. A Fernanda é visagista de verdade, entende o que combina com o nosso formato facial.”
+                  <h3 className="font-serif font-bold text-xl text-[#1C1917]">
+                    Ambiente Privativo com Hora Marcada
+                  </h3>
+                  <p className="text-sm text-[#44403C] font-sans leading-relaxed">
+                    Sem o barulho ou agitação de salões tradicionais. Na Sala 205 da Av. Nonoai, o foco é 100% individual, garantindo tranquilidade, café especial e atendimento dedicado.
                   </p>
                 </div>
-                <div className="pt-3 border-t border-[#F0E4DE] flex items-center justify-between text-xs font-sans">
-                  <div>
-                    <strong className="text-[#1C1917] block font-bold">Mariana Becker</strong>
-                    <span className="text-[#8F6E32]">Menino Deus • Porto Alegre</span>
-                  </div>
-                  <span className="text-[#6E501E] font-medium text-[11px]">Cliente Recorrente</span>
+                <div className="pt-5 mt-6 border-t border-[#F0E4DE] flex items-center gap-2 text-xs font-sans font-bold text-[#6E501E] uppercase tracking-wider">
+                  <CheckCircle2 className="w-4 h-4 text-[#8F6E32]" />
+                  <span>Atendimento One-on-One</span>
                 </div>
               </div>
 
             </div>
 
-            {/* CTA da Seção de Depoimentos */}
+            {/* CTA Direto para Triagem de Horário no WhatsApp */}
             <div className="mt-12 text-center">
               <button
                 type="button"
-                onClick={() => handleDirectWhatsApp("Olá Fernanda! Vi os depoimentos de suas clientes e gostaria de agendar uma avaliação para o meu cabelo.")}
-                className="inline-flex items-center gap-2 min-h-[48px] px-8 py-3.5 rounded-full bg-[#1C1917] hover:bg-[#8F6E32] text-white font-sans font-semibold text-sm tracking-wide shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                onClick={() => handleDirectWhatsApp("Olá, Fernanda! Gostaria de agendar uma avaliação e triagem de horário para atendimento exclusivo na Sala 205.")}
+                className="inline-flex items-center gap-2.5 min-h-[50px] px-8 py-3.5 rounded-full bg-[#1C1917] hover:bg-[#8F6E32] text-white font-sans font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer"
               >
                 <Calendar className="w-4 h-4 text-[#E6C99B]" />
-                <span>Quero Viver Essa Transformação</span>
+                <span>Agendar Horário Exclusivo no WhatsApp</span>
+                <ArrowRight className="w-4 h-4 text-[#E6C99B]" />
               </button>
             </div>
 
